@@ -1,0 +1,37 @@
+agents:
+  job_scout_retriever:
+    allowed_tools: [web_search, web_fetch, rss_fetch]
+    denied_tools: []
+  job_scout_extractor:
+    allowed_tools: [parse_html, extract_json]
+    denied_tools: [web_search, web_fetch]
+  cert_scout_retriever:
+    allowed_tools: [web_search, web_fetch]
+    denied_tools: []
+  cert_scout_extractor:
+    allowed_tools: [parse_html, extract_json]
+    denied_tools: [web_search, web_fetch]
+  trends_scout_retriever:
+    allowed_tools: [web_search, web_fetch, rss_fetch]
+    denied_tools: []
+  trends_scout_extractor:
+    allowed_tools: [parse_html, extract_json]
+    denied_tools: [web_search, web_fetch]
+  coordinator:
+    allowed_tools: [merge_items, rank_items]
+    denied_tools: [web_search, web_fetch, rss_fetch]
+  ceo:
+    allowed_tools: [strategic_analysis]
+    denied_tools: [web_search, web_fetch, rss_fetch]
+  cfo:
+    allowed_tools: [risk_analysis]
+    denied_tools: [web_search, web_fetch, rss_fetch]
+  cover_letter_agent:
+    allowed_tools: [generate_text]
+    denied_tools: [web_search, web_fetch, rss_fetch]
+  verifier:
+    allowed_tools: [validate_schema, check_evidence]
+    denied_tools: [web_search, web_fetch]
+  audit_writer:
+    allowed_tools: [write_jsonl, create_bundle]
+    denied_tools: [web_search, web_fetch]

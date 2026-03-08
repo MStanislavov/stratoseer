@@ -1,0 +1,41 @@
+agents:
+  job_scout_retriever:
+    max_steps: 5
+    max_tokens: 4000
+  job_scout_extractor:
+    max_steps: 3
+    max_tokens: 4000
+  cert_scout_retriever:
+    max_steps: 5
+    max_tokens: 4000
+  cert_scout_extractor:
+    max_steps: 3
+    max_tokens: 4000
+  trends_scout_retriever:
+    max_steps: 5
+    max_tokens: 4000
+  trends_scout_extractor:
+    max_steps: 3
+    max_tokens: 4000
+  coordinator:
+    max_steps: 3
+    max_tokens: 6000
+  ceo:
+    max_steps: 3
+    max_tokens: 6000
+  cfo:
+    max_steps: 3
+    max_tokens: 6000
+  cover_letter_agent:
+    max_steps: 5
+    max_tokens: 8000
+  verifier:
+    max_steps: 10
+    max_tokens: 2000
+  audit_writer:
+    max_steps: 5
+    max_tokens: 2000
+
+global:
+  max_run_duration_seconds: 300
+  max_output_items: 50

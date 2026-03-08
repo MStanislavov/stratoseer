@@ -1,0 +1,37 @@
+agents:
+  job_scout_retriever:
+    inputs: [profile_targets, source_config]
+    outputs: [raw_job_listings]
+  job_scout_extractor:
+    inputs: [raw_job_listings]
+    outputs: [extracted_opportunities, evidence_items]
+  cert_scout_retriever:
+    inputs: [profile_targets, source_config]
+    outputs: [raw_cert_listings]
+  cert_scout_extractor:
+    inputs: [raw_cert_listings]
+    outputs: [extracted_opportunities, evidence_items]
+  trends_scout_retriever:
+    inputs: [profile_targets, source_config]
+    outputs: [raw_trends_data]
+  trends_scout_extractor:
+    inputs: [raw_trends_data]
+    outputs: [extracted_opportunities, evidence_items]
+  coordinator:
+    inputs: [extracted_opportunities, evidence_items]
+    outputs: [ranked_opportunities, claims, summary]
+  ceo:
+    inputs: [ranked_opportunities, claims, summary]
+    outputs: [strategic_recommendations]
+  cfo:
+    inputs: [ranked_opportunities, claims, summary]
+    outputs: [risk_assessment]
+  cover_letter_agent:
+    inputs: [cv_text, jd_text, extracted_requirements]
+    outputs: [cover_letter_text, evidence_refs]
+  verifier:
+    inputs: [all_outputs, evidence_items, claims]
+    outputs: [verifier_report]
+  audit_writer:
+    inputs: [all_outputs, verifier_report, run_metadata]
+    outputs: [audit_log, run_bundle]
