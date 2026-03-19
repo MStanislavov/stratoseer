@@ -1,6 +1,18 @@
 scouts:
-  web_scraper:
+  web_scrapers:
     allowed_sources:
       - "duckduckgo.com"
     denied_sources:
       - "*.onion"
+    freshness:
+      default_timelimit: "m"
+      expiry_patterns:
+        - "no longer accepting applications"
+        - "this job has expired"
+        - "this listing has expired"
+        - "position has been filled"
+        - "this job is no longer available"
+        - "posting has closed"
+        - "applications? closed"
+        - "no longer available"
+        - "job has been removed"

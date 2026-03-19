@@ -36,6 +36,7 @@ class SafeDuckDuckGoSearchTool(BaseTool):
     )
     max_results: int = Field(default=10, description="Max results to return")
     region: str = Field(default="wt-wt", description="Search region")
+    timelimit: str = Field(default="", description="Time filter: d (day), w (week), m (month), y (year)")
     _backend: str = ""
 
     @model_validator(mode="after")
@@ -54,14 +55,16 @@ class SafeDuckDuckGoSearchTool(BaseTool):
         from ddgs import DDGS
 
         try:
+            kwargs: dict[str, Any] = dict(
+                region=self.region,
+                safesearch="moderate",
+                max_results=self.max_results,
+                backend=self._backend,
+            )
+            if self.timelimit:
+                kwargs["timelimit"] = self.timelimit
             with DDGS() as ddgs:
-                results = ddgs.text(
-                    query,
-                    region=self.region,
-                    safesearch="moderate",
-                    max_results=self.max_results,
-                    backend=self._backend,
-                )
+                results = ddgs.text(query, **kwargs)
             if not results:
                 return "No good DuckDuckGo Search Result was found"
             return "\n\n".join(
