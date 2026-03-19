@@ -1,2 +1,0 @@
-{"timestamp": "2026-03-11T15:18:28.463362+00:00", "event_type": "agent_start", "agent": "daily_pipeline", "data": {"mode": "daily", "profile_id": "a59057f7-7cc6-4c68-af93-269b6eb02d83"}}
-{"timestamp": "2026-03-11T15:18:28.482892+00:00", "event_type": "output", "agent": "daily_pipeline", "data": {"summary": "Found 7 opportunities across 6 sources.", "opportunity_count": 7, "verifier_status": "pass"}}
