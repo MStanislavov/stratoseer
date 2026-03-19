@@ -8,7 +8,8 @@ venv/
 dist/
 build/
 .idea/
-artifacts/runs/*/
+artifacts/
+app/artifacts/
 *.db
 .ruff_cache/
 .pytest_cache/
@@ -18,3 +19,5 @@ static/spa/
 .claude/
 CLAUDE.md
 README-setup.md
+.jbeval
+alembic.ini

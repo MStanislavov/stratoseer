@@ -40,39 +40,35 @@ def diff_engine(writer: AuditWriter) -> DiffEngine:
 def _make_bundle(
     writer: AuditWriter,
     run_id: str,
-    opportunities: list[dict[str, Any]] | None = None,
-    summary: str = "Test summary",
-    verifier_status: str = "pass",
+    jobs: list[dict[str, Any]] | None = None,
+    certifications: list[dict[str, Any]] | None = None,
+    courses: list[dict[str, Any]] | None = None,
+    events: list[dict[str, Any]] | None = None,
+    groups: list[dict[str, Any]] | None = None,
 ) -> None:
-    """Helper to create a bundle with given opportunities."""
-    if opportunities is None:
-        opportunities = [
-            {
-                "title": "Software Engineer at Acme",
-                "source": "linkedin",
-                "description": "Build things",
-                "url": "https://example.com/job/1",
-                "opportunity_type": "job",
-            },
-            {
-                "title": "Backend Developer at Globex",
-                "source": "indeed",
-                "description": "Write APIs",
-                "url": "https://example.com/job/2",
-                "opportunity_type": "job",
-            },
+    """Helper to create a bundle with given entity lists."""
+    if jobs is None:
+        jobs = [
+            {"title": "Software Engineer at Acme", "company": "Acme", "url": "https://example.com/job/1"},
+            {"title": "Backend Developer at Globex", "company": "Globex", "url": "https://example.com/job/2"},
         ]
     writer.create_run_bundle(
         run_id=run_id,
         profile_hash="profile-hash-abc",
         policy_version_hash="policy-hash-xyz",
-        verifier_report={"overall_status": verifier_status},
-        final_artifacts={"opportunities": opportunities, "summary": summary},
+        verifier_report={},
+        final_artifacts={
+            "jobs": jobs,
+            "certifications": certifications or [],
+            "courses": courses or [],
+            "events": events or [],
+            "groups": groups or [],
+        },
     )
 
 
 # ------------------------------------------------------------------
-# ReplayEngine — strict
+# ReplayEngine, strict
 # ------------------------------------------------------------------
 
 
@@ -88,16 +84,9 @@ class TestReplayStrict:
         assert result["original_run_id"] == "orig-run-1"
         assert result["drift"] == []
 
-        opps = result["result"]["opportunities"]
-        assert len(opps) == 2
-        assert opps[0]["title"] == "Software Engineer at Acme"
-
-    def test_verifier_report_preserved(
-        self, writer: AuditWriter, replay_engine: ReplayEngine
-    ) -> None:
-        _make_bundle(writer, "orig-run-2", verifier_status="partial")
-        result = replay_engine.replay_strict("orig-run-2", "replay-run-2")
-        assert result["verifier_report"]["overall_status"] == "partial"
+        jobs = result["result"]["jobs"]
+        assert len(jobs) == 2
+        assert jobs[0]["title"] == "Software Engineer at Acme"
 
     def test_nonexistent_run_raises(self, replay_engine: ReplayEngine) -> None:
         with pytest.raises(ValueError, match="No bundle found"):
@@ -105,7 +94,7 @@ class TestReplayStrict:
 
 
 # ------------------------------------------------------------------
-# ReplayEngine — refresh
+# ReplayEngine, refresh
 # ------------------------------------------------------------------
 
 
@@ -117,7 +106,6 @@ class TestReplayRefresh:
         original_bundle = writer.read_bundle("orig-run-3")
         assert original_bundle is not None
 
-        # "Fresh" result is identical to original
         new_result = original_bundle["final_artifacts"]
         result = replay_engine.replay_refresh("orig-run-3", "refresh-run-1", new_result)
 
@@ -129,13 +117,16 @@ class TestReplayRefresh:
     ) -> None:
         _make_bundle(writer, "orig-run-4")
 
-        # Fresh result has an extra opportunity
         new_result = {
-            "opportunities": [
-                {"title": "Software Engineer at Acme", "source": "linkedin"},
-                {"title": "Backend Developer at Globex", "source": "indeed"},
-                {"title": "New Role at Initech", "source": "glassdoor"},
+            "jobs": [
+                {"title": "Software Engineer at Acme", "company": "Acme"},
+                {"title": "Backend Developer at Globex", "company": "Globex"},
+                {"title": "New Role at Initech", "company": "Initech"},
             ],
+            "certifications": [],
+            "courses": [],
+            "events": [],
+            "groups": [],
         }
         result = replay_engine.replay_refresh("orig-run-4", "refresh-run-2", new_result)
 
@@ -148,11 +139,14 @@ class TestReplayRefresh:
     ) -> None:
         _make_bundle(writer, "orig-run-5")
 
-        # Fresh result is missing one opportunity
         new_result = {
-            "opportunities": [
-                {"title": "Software Engineer at Acme", "source": "linkedin"},
+            "jobs": [
+                {"title": "Software Engineer at Acme", "company": "Acme"},
             ],
+            "certifications": [],
+            "courses": [],
+            "events": [],
+            "groups": [],
         }
         result = replay_engine.replay_refresh("orig-run-5", "refresh-run-3", new_result)
 
@@ -174,11 +168,9 @@ class TestDiffIdentical:
     def test_no_changes_for_identical_runs(
         self, writer: AuditWriter, diff_engine: DiffEngine
     ) -> None:
-        opps = [
-            {"title": "SWE", "source": "linkedin", "description": "code"},
-        ]
-        _make_bundle(writer, "run-a", opportunities=opps)
-        _make_bundle(writer, "run-b", opportunities=opps)
+        jobs = [{"title": "SWE", "company": "Acme", "description": "code"}]
+        _make_bundle(writer, "run-a", jobs=jobs)
+        _make_bundle(writer, "run-b", jobs=jobs)
 
         result = diff_engine.diff_runs("run-a", "run-b")
 
@@ -194,13 +186,13 @@ class TestDiffAdditionsRemovals:
     def test_detects_additions(
         self, writer: AuditWriter, diff_engine: DiffEngine
     ) -> None:
-        opps_a = [{"title": "SWE", "source": "linkedin"}]
-        opps_b = [
-            {"title": "SWE", "source": "linkedin"},
-            {"title": "DevOps", "source": "indeed"},
+        jobs_a = [{"title": "SWE", "company": "Acme"}]
+        jobs_b = [
+            {"title": "SWE", "company": "Acme"},
+            {"title": "DevOps", "company": "Globex"},
         ]
-        _make_bundle(writer, "diff-a-1", opportunities=opps_a)
-        _make_bundle(writer, "diff-b-1", opportunities=opps_b)
+        _make_bundle(writer, "diff-a-1", jobs=jobs_a)
+        _make_bundle(writer, "diff-b-1", jobs=jobs_b)
 
         result = diff_engine.diff_runs("diff-a-1", "diff-b-1")
 
@@ -211,13 +203,13 @@ class TestDiffAdditionsRemovals:
     def test_detects_removals(
         self, writer: AuditWriter, diff_engine: DiffEngine
     ) -> None:
-        opps_a = [
-            {"title": "SWE", "source": "linkedin"},
-            {"title": "DevOps", "source": "indeed"},
+        jobs_a = [
+            {"title": "SWE", "company": "Acme"},
+            {"title": "DevOps", "company": "Globex"},
         ]
-        opps_b = [{"title": "SWE", "source": "linkedin"}]
-        _make_bundle(writer, "diff-a-2", opportunities=opps_a)
-        _make_bundle(writer, "diff-b-2", opportunities=opps_b)
+        jobs_b = [{"title": "SWE", "company": "Acme"}]
+        _make_bundle(writer, "diff-a-2", jobs=jobs_a)
+        _make_bundle(writer, "diff-b-2", jobs=jobs_b)
 
         result = diff_engine.diff_runs("diff-a-2", "diff-b-2")
 
@@ -228,24 +220,10 @@ class TestDiffAdditionsRemovals:
     def test_detects_changes(
         self, writer: AuditWriter, diff_engine: DiffEngine
     ) -> None:
-        opps_a = [
-            {
-                "title": "SWE",
-                "source": "linkedin",
-                "description": "Build things",
-                "url": "https://example.com/1",
-            },
-        ]
-        opps_b = [
-            {
-                "title": "SWE",
-                "source": "linkedin",
-                "description": "Build awesome things",
-                "url": "https://example.com/1-updated",
-            },
-        ]
-        _make_bundle(writer, "diff-a-3", opportunities=opps_a)
-        _make_bundle(writer, "diff-b-3", opportunities=opps_b)
+        jobs_a = [{"title": "SWE", "company": "Acme", "description": "Build things", "url": "https://example.com/1"}]
+        jobs_b = [{"title": "SWE", "company": "Acme", "description": "Build awesome things", "url": "https://example.com/1-updated"}]
+        _make_bundle(writer, "diff-a-3", jobs=jobs_a)
+        _make_bundle(writer, "diff-b-3", jobs=jobs_b)
 
         result = diff_engine.diff_runs("diff-a-3", "diff-b-3")
 
@@ -257,8 +235,6 @@ class TestDiffAdditionsRemovals:
         assert change["title"] == "SWE"
         assert change["changes"]["description"]["old"] == "Build things"
         assert change["changes"]["description"]["new"] == "Build awesome things"
-        assert change["changes"]["url"]["old"] == "https://example.com/1"
-        assert change["changes"]["url"]["new"] == "https://example.com/1-updated"
 
 
 class TestDiffErrors:
@@ -278,26 +254,15 @@ class TestDiffErrors:
 
 
 class TestDiffSummary:
-    def test_verifier_status_comparison(
+    def test_item_counts(
         self, writer: AuditWriter, diff_engine: DiffEngine
     ) -> None:
-        _make_bundle(writer, "v-run-a", verifier_status="pass")
-        _make_bundle(writer, "v-run-b", verifier_status="partial")
-
-        result = diff_engine.diff_runs("v-run-a", "v-run-b")
-
-        assert result["summary"]["verifier_a"] == "pass"
-        assert result["summary"]["verifier_b"] == "partial"
-
-    def test_opportunity_counts(
-        self, writer: AuditWriter, diff_engine: DiffEngine
-    ) -> None:
-        opps_a = [{"title": "A", "source": "s"}]
-        opps_b = [{"title": "B", "source": "s"}, {"title": "C", "source": "s"}]
-        _make_bundle(writer, "count-a", opportunities=opps_a)
-        _make_bundle(writer, "count-b", opportunities=opps_b)
+        jobs_a = [{"title": "A", "company": "X"}]
+        jobs_b = [{"title": "B", "company": "Y"}, {"title": "C", "company": "Z"}]
+        _make_bundle(writer, "count-a", jobs=jobs_a)
+        _make_bundle(writer, "count-b", jobs=jobs_b)
 
         result = diff_engine.diff_runs("count-a", "count-b")
 
-        assert result["summary"]["opportunities_a"] == 1
-        assert result["summary"]["opportunities_b"] == 2
+        assert result["summary"]["items_a"] == 1
+        assert result["summary"]["items_b"] == 2

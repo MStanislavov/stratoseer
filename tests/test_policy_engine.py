@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import textwrap
 from pathlib import Path
 
 import pytest
@@ -21,48 +20,44 @@ def policy_dir(tmp_path: Path) -> Path:
     """Create a minimal but complete set of policy YAML files."""
     tools = {
         "agents": {
-            "job_scout_retriever": {
-                "allowed_tools": ["web_search", "web_fetch", "rss_fetch"],
-                "denied_tools": [],
-            },
-            "job_scout_extractor": {
-                "allowed_tools": ["parse_html", "extract_json"],
+            "goal_extractor": {
+                "allowed_tools": ["llm_structured_output"],
                 "denied_tools": ["web_search", "web_fetch"],
             },
-            "coordinator": {
-                "allowed_tools": ["merge_items", "rank_items"],
-                "denied_tools": ["web_search", "web_fetch", "rss_fetch"],
+            "web_scraper": {
+                "allowed_tools": ["web_search", "web_fetch"],
+                "denied_tools": [],
+            },
+            "data_formatter": {
+                "allowed_tools": ["llm_structured_output"],
+                "denied_tools": ["web_search", "web_fetch"],
             },
         }
     }
     sources = {
         "scouts": {
-            "job_scout": {
-                "allowed_sources": ["linkedin.com/jobs", "indeed.com"],
+            "web_scraper": {
+                "allowed_sources": ["duckduckgo.com"],
                 "denied_sources": ["*.onion"],
-            },
-            "cert_scout": {
-                "allowed_sources": ["coursera.org"],
-                "denied_sources": [],
             },
         }
     }
     budgets = {
         "agents": {
-            "job_scout_retriever": {"max_steps": 5, "max_tokens": 4000},
-            "coordinator": {"max_steps": 3, "max_tokens": 6000},
+            "goal_extractor": {"max_steps": 3, "max_tokens": 4000},
+            "web_scraper": {"max_steps": 5, "max_tokens": 4000},
         },
         "global": {"max_run_duration_seconds": 300, "max_output_items": 50},
     }
     boundaries = {
         "agents": {
-            "job_scout_retriever": {
-                "inputs": ["profile_targets", "source_config"],
-                "outputs": ["raw_job_listings"],
+            "goal_extractor": {
+                "inputs": ["profile_targets", "profile_skills"],
+                "outputs": ["search_prompts"],
             },
-            "coordinator": {
-                "inputs": ["extracted_opportunities", "evidence_items"],
-                "outputs": ["ranked_opportunities", "claims", "summary"],
+            "data_formatter": {
+                "inputs": ["raw_job_results", "raw_cert_results", "raw_event_results", "raw_trend_results"],
+                "outputs": ["formatted_jobs", "formatted_certifications", "formatted_courses", "formatted_events", "formatted_groups", "formatted_trends"],
             },
         }
     }
@@ -125,7 +120,6 @@ class TestLoading:
         engine = PolicyEngine(policy_dir)
         h1 = engine.version.hash
 
-        # Mutate a YAML file
         budgets_path = policy_dir / "budgets.yaml"
         data = yaml.safe_load(budgets_path.read_text(encoding="utf-8"))
         data["global"]["max_output_items"] = 999
@@ -148,24 +142,23 @@ class TestLoading:
 
 class TestToolAllowlist:
     def test_allowed_tool_returns_true(self, engine: PolicyEngine) -> None:
-        assert engine.is_tool_allowed("job_scout_retriever", "web_search") is True
+        assert engine.is_tool_allowed("web_scraper", "web_search") is True
 
     def test_denied_tool_returns_false(self, engine: PolicyEngine) -> None:
-        assert engine.is_tool_allowed("job_scout_extractor", "web_search") is False
+        assert engine.is_tool_allowed("goal_extractor", "web_search") is False
 
     def test_unlisted_tool_returns_false(self, engine: PolicyEngine) -> None:
-        assert engine.is_tool_allowed("job_scout_retriever", "nuclear_launch") is False
+        assert engine.is_tool_allowed("web_scraper", "nuclear_launch") is False
 
     def test_unknown_agent_returns_false(self, engine: PolicyEngine) -> None:
         assert engine.is_tool_allowed("unknown_agent", "web_search") is False
 
-    def test_coordinator_denied_retrieval(self, engine: PolicyEngine) -> None:
-        for tool in ("web_search", "web_fetch", "rss_fetch"):
-            assert engine.is_tool_allowed("coordinator", tool) is False
+    def test_data_formatter_denied_retrieval(self, engine: PolicyEngine) -> None:
+        for tool in ("web_search", "web_fetch"):
+            assert engine.is_tool_allowed("data_formatter", tool) is False
 
-    def test_coordinator_allowed_planning(self, engine: PolicyEngine) -> None:
-        assert engine.is_tool_allowed("coordinator", "merge_items") is True
-        assert engine.is_tool_allowed("coordinator", "rank_items") is True
+    def test_data_formatter_allowed_llm(self, engine: PolicyEngine) -> None:
+        assert engine.is_tool_allowed("data_formatter", "llm_structured_output") is True
 
 
 # ------------------------------------------------------------------
@@ -173,28 +166,18 @@ class TestToolAllowlist:
 # ------------------------------------------------------------------
 
 
-class TestSourceAllowlist:
+class TestSourceDenylist:
     def test_allowed_source(self, engine: PolicyEngine) -> None:
-        assert engine.is_source_allowed("job_scout", "https://linkedin.com/jobs/123") is True
+        assert engine.is_source_allowed("web_scraper", "https://duckduckgo.com/search") is True
 
     def test_denied_wildcard_source(self, engine: PolicyEngine) -> None:
-        assert engine.is_source_allowed("job_scout", "http://something.onion") is False
+        assert engine.is_source_allowed("web_scraper", "http://something.onion") is False
 
-    def test_denied_onion_source(self, engine: PolicyEngine) -> None:
-        assert engine.is_source_allowed("job_scout", "darkweb.onion") is False
-
-    def test_unlisted_source_returns_false(self, engine: PolicyEngine) -> None:
-        assert engine.is_source_allowed("job_scout", "https://randomsite.xyz") is False
+    def test_unlisted_source_allowed_by_default(self, engine: PolicyEngine) -> None:
+        assert engine.is_source_allowed("web_scraper", "https://randomsite.xyz") is True
 
     def test_unknown_scout_returns_false(self, engine: PolicyEngine) -> None:
-        assert engine.is_source_allowed("nonexistent_scout", "indeed.com") is False
-
-    def test_cert_scout_allowed(self, engine: PolicyEngine) -> None:
-        assert engine.is_source_allowed("cert_scout", "https://coursera.org/cert") is True
-
-    def test_cert_scout_no_denied(self, engine: PolicyEngine) -> None:
-        # cert_scout has empty denied list, but unlisted sources still fail
-        assert engine.is_source_allowed("cert_scout", "https://randomsite.xyz") is False
+        assert engine.is_source_allowed("nonexistent_scout", "duckduckgo.com") is False
 
 
 # ------------------------------------------------------------------
@@ -204,15 +187,15 @@ class TestSourceAllowlist:
 
 class TestBudgets:
     def test_get_budget_known_agent(self, engine: PolicyEngine) -> None:
-        budget = engine.get_budget("job_scout_retriever")
+        budget = engine.get_budget("goal_extractor")
         assert isinstance(budget, Budget)
-        assert budget.max_steps == 5
+        assert budget.max_steps == 3
         assert budget.max_tokens == 4000
 
-    def test_get_budget_coordinator(self, engine: PolicyEngine) -> None:
-        budget = engine.get_budget("coordinator")
-        assert budget.max_steps == 3
-        assert budget.max_tokens == 6000
+    def test_get_budget_web_scraper(self, engine: PolicyEngine) -> None:
+        budget = engine.get_budget("web_scraper")
+        assert budget.max_steps == 5
+        assert budget.max_tokens == 4000
 
     def test_get_budget_unknown_raises(self, engine: PolicyEngine) -> None:
         with pytest.raises(KeyError, match="No budget"):
@@ -226,14 +209,14 @@ class TestBudgets:
 
 class TestBoundaries:
     def test_get_boundaries_known_agent(self, engine: PolicyEngine) -> None:
-        b = engine.get_boundaries("job_scout_retriever")
-        assert b["inputs"] == ["profile_targets", "source_config"]
-        assert b["outputs"] == ["raw_job_listings"]
+        b = engine.get_boundaries("goal_extractor")
+        assert b["inputs"] == ["profile_targets", "profile_skills"]
+        assert b["outputs"] == ["search_prompts"]
 
-    def test_get_boundaries_coordinator(self, engine: PolicyEngine) -> None:
-        b = engine.get_boundaries("coordinator")
-        assert "extracted_opportunities" in b["inputs"]
-        assert "ranked_opportunities" in b["outputs"]
+    def test_get_boundaries_data_formatter(self, engine: PolicyEngine) -> None:
+        b = engine.get_boundaries("data_formatter")
+        assert "raw_job_results" in b["inputs"]
+        assert "formatted_jobs" in b["outputs"]
 
     def test_get_boundaries_unknown_raises(self, engine: PolicyEngine) -> None:
         with pytest.raises(KeyError, match="No boundaries"):
@@ -269,7 +252,6 @@ class TestRedaction:
         assert "[REDACTED_SSN]" in result
 
     def test_apply_redaction_email_not_in_bundle(self, engine: PolicyEngine) -> None:
-        # Email redaction only applies_to audit_log, not run_bundle
         text = "Contact user@example.com"
         result = engine.apply_redaction(text, "run_bundle")
         assert "user@example.com" in result

@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-import pytest_asyncio
 
 
 @pytest.mark.asyncio
@@ -25,12 +24,12 @@ async def test_create_cover_letter_with_jd_text(client):
     data = resp.json()
     assert data["profile_id"] == profile_id
     assert data["run_id"] is not None
-    assert data["opportunity_id"] is None
+    assert data["job_opportunity_id"] is None
 
     # Wait for background pipeline to complete
     await asyncio.sleep(1)
 
-    # Fetch the cover letter — it should now have content
+    # Fetch the cover letter, it should now have content
     get_resp = await client.get(
         f"/api/profiles/{profile_id}/cover-letters/{data['id']}"
     )
@@ -39,7 +38,7 @@ async def test_create_cover_letter_with_jd_text(client):
 
 @pytest.mark.asyncio
 async def test_create_cover_letter_requires_input(client):
-    """POST without opportunity_id or jd_text should fail."""
+    """POST without job_opportunity_id or jd_text should fail."""
     profile_resp = await client.post(
         "/api/profiles", json={"name": "CL Validation"}
     )

@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 from app.db import Base, get_db
+from app.main import app as fastapi_app
 
 # Import all models to register them with Base.metadata
 import app.models  # noqa: F401
@@ -39,15 +40,12 @@ async def db_session(db_engine):
 
 @pytest_asyncio.fixture
 async def client(db_session):
-    # Lazy import to avoid static-file mount errors at module level
-    from app.main import app
-
     async def override_get_db():
         yield db_session
 
-    app.dependency_overrides[get_db] = override_get_db
+    fastapi_app.dependency_overrides[get_db] = override_get_db
     async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
+        transport=ASGITransport(app=fastapi_app), base_url="http://test"
     ) as c:
         yield c
-    app.dependency_overrides.clear()
+    fastapi_app.dependency_overrides.clear()
