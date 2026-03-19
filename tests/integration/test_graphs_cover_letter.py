@@ -52,6 +52,6 @@ class TestCoverLetterPipeline:
             "audit_events": [],
         })
 
-        bundle = audit_writer.read_bundle(run_id)
+        bundle = await audit_writer.read_bundle(run_id)
         assert bundle is not None
         assert "cover_letter" in bundle["final_artifacts"]

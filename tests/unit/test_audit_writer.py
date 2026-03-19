@@ -87,35 +87,40 @@ class TestAuditEvent:
 
 
 class TestAppendAndRead:
-    def test_append_creates_directory_and_file(self, writer: AuditWriter, artifacts_dir: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_append_creates_directory_and_file(self, writer: AuditWriter, artifacts_dir: Path) -> None:
         event = AuditEvent(timestamp="t1", event_type="agent_start", agent="scout")
-        writer.append("run-001", event)
+        await writer.append("run-001", event)
         log_path = artifacts_dir / "runs" / "run-001" / "audit.jsonl"
         assert log_path.exists()
 
-    def test_single_append_writes_valid_json_line(self, writer: AuditWriter) -> None:
+    @pytest.mark.asyncio
+    async def test_single_append_writes_valid_json_line(self, writer: AuditWriter) -> None:
         event = AuditEvent(timestamp="t1", event_type="agent_start", agent="scout")
-        writer.append("run-001", event)
-        events = writer.read_log("run-001")
+        await writer.append("run-001", event)
+        events = await writer.read_log("run-001")
         assert len(events) == 1
         assert events[0]["event_type"] == "agent_start"
 
-    def test_multiple_appends_in_order(self, writer: AuditWriter) -> None:
+    @pytest.mark.asyncio
+    async def test_multiple_appends_in_order(self, writer: AuditWriter) -> None:
         for i in range(5):
             event = AuditEvent(timestamp=f"t{i}", event_type="agent_start", agent=f"agent_{i}")
-            writer.append("run-002", event)
-        events = writer.read_log("run-002")
+            await writer.append("run-002", event)
+        events = await writer.read_log("run-002")
         assert len(events) == 5
         assert [e["agent"] for e in events] == [f"agent_{i}" for i in range(5)]
 
-    def test_read_log_nonexistent_run_returns_empty(self, writer: AuditWriter) -> None:
-        events = writer.read_log("nonexistent-run")
+    @pytest.mark.asyncio
+    async def test_read_log_nonexistent_run_returns_empty(self, writer: AuditWriter) -> None:
+        events = await writer.read_log("nonexistent-run")
         assert events == []
 
-    def test_each_line_is_valid_json(self, writer: AuditWriter, artifacts_dir: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_each_line_is_valid_json(self, writer: AuditWriter, artifacts_dir: Path) -> None:
         for i in range(3):
             event = AuditEvent(timestamp=f"t{i}", event_type="output", data={"value": i})
-            writer.append("run-003", event)
+            await writer.append("run-003", event)
         log_path = artifacts_dir / "runs" / "run-003" / "audit.jsonl"
         lines = log_path.read_text(encoding="utf-8").strip().split("\n")
         assert len(lines) == 3
@@ -130,8 +135,9 @@ class TestAppendAndRead:
 
 
 class TestBundle:
-    def test_create_bundle_writes_file(self, writer: AuditWriter, artifacts_dir: Path) -> None:
-        path = writer.create_run_bundle(
+    @pytest.mark.asyncio
+    async def test_create_bundle_writes_file(self, writer: AuditWriter, artifacts_dir: Path) -> None:
+        path = await writer.create_run_bundle(
             run_id="run-100",
             profile_hash="ph123",
             policy_version_hash="pv456",
@@ -141,8 +147,9 @@ class TestBundle:
         assert path.exists()
         assert path.name == "bundle.json"
 
-    def test_read_bundle_returns_contents(self, writer: AuditWriter) -> None:
-        writer.create_run_bundle(
+    @pytest.mark.asyncio
+    async def test_read_bundle_returns_contents(self, writer: AuditWriter) -> None:
+        await writer.create_run_bundle(
             run_id="run-101",
             profile_hash="ph123",
             policy_version_hash="pv456",
@@ -150,7 +157,7 @@ class TestBundle:
             final_artifacts={"opportunities": [{"title": "SWE"}]},
             intermediate_outputs=[{"step": 1}],
         )
-        bundle = writer.read_bundle("run-101")
+        bundle = await writer.read_bundle("run-101")
         assert bundle is not None
         assert bundle["run_id"] == "run-101"
         assert bundle["profile_hash"] == "ph123"
@@ -160,19 +167,21 @@ class TestBundle:
         assert len(bundle["intermediate_outputs"]) == 1
         assert "created_at" in bundle
 
-    def test_read_bundle_nonexistent_returns_none(self, writer: AuditWriter) -> None:
-        result = writer.read_bundle("nonexistent-run")
+    @pytest.mark.asyncio
+    async def test_read_bundle_nonexistent_returns_none(self, writer: AuditWriter) -> None:
+        result = await writer.read_bundle("nonexistent-run")
         assert result is None
 
-    def test_bundle_intermediate_defaults_empty(self, writer: AuditWriter) -> None:
-        writer.create_run_bundle(
+    @pytest.mark.asyncio
+    async def test_bundle_intermediate_defaults_empty(self, writer: AuditWriter) -> None:
+        await writer.create_run_bundle(
             run_id="run-102",
             profile_hash="ph",
             policy_version_hash="pv",
             verifier_report={},
             final_artifacts={},
         )
-        bundle = writer.read_bundle("run-102")
+        bundle = await writer.read_bundle("run-102")
         assert bundle["intermediate_outputs"] == []
 
 
@@ -182,51 +191,55 @@ class TestBundle:
 
 
 class TestRedaction:
-    def test_email_redacted_in_audit_log(self, writer_with_redaction: AuditWriter) -> None:
+    @pytest.mark.asyncio
+    async def test_email_redacted_in_audit_log(self, writer_with_redaction: AuditWriter) -> None:
         event = AuditEvent(
             timestamp="t1",
             event_type="output",
             data={"contact": "user@example.com"},
         )
-        writer_with_redaction.append("run-redact-1", event)
-        events = writer_with_redaction.read_log("run-redact-1")
+        await writer_with_redaction.append("run-redact-1", event)
+        events = await writer_with_redaction.read_log("run-redact-1")
         raw = json.dumps(events[0])
         assert "user@example.com" not in raw
         assert "[REDACTED_EMAIL]" in raw
 
-    def test_ssn_redacted_in_audit_log(self, writer_with_redaction: AuditWriter) -> None:
+    @pytest.mark.asyncio
+    async def test_ssn_redacted_in_audit_log(self, writer_with_redaction: AuditWriter) -> None:
         event = AuditEvent(
             timestamp="t1",
             event_type="output",
             data={"ssn": "123-45-6789"},
         )
-        writer_with_redaction.append("run-redact-2", event)
-        events = writer_with_redaction.read_log("run-redact-2")
+        await writer_with_redaction.append("run-redact-2", event)
+        events = await writer_with_redaction.read_log("run-redact-2")
         raw = json.dumps(events[0])
         assert "123-45-6789" not in raw
         assert "[REDACTED_SSN]" in raw
 
-    def test_ssn_redacted_in_bundle(self, writer_with_redaction: AuditWriter) -> None:
-        writer_with_redaction.create_run_bundle(
+    @pytest.mark.asyncio
+    async def test_ssn_redacted_in_bundle(self, writer_with_redaction: AuditWriter) -> None:
+        await writer_with_redaction.create_run_bundle(
             run_id="run-redact-3",
             profile_hash="ph",
             policy_version_hash="pv",
             verifier_report={},
             final_artifacts={"note": "SSN is 123-45-6789"},
         )
-        bundle = writer_with_redaction.read_bundle("run-redact-3")
+        bundle = await writer_with_redaction.read_bundle("run-redact-3")
         raw = json.dumps(bundle)
         assert "123-45-6789" not in raw
         assert "[REDACTED_SSN]" in raw
 
-    def test_no_redaction_without_policy_engine(self, writer: AuditWriter) -> None:
+    @pytest.mark.asyncio
+    async def test_no_redaction_without_policy_engine(self, writer: AuditWriter) -> None:
         event = AuditEvent(
             timestamp="t1",
             event_type="output",
             data={"contact": "user@example.com"},
         )
-        writer.append("run-no-redact", event)
-        events = writer.read_log("run-no-redact")
+        await writer.append("run-no-redact", event)
+        events = await writer.read_log("run-no-redact")
         raw = json.dumps(events[0])
         assert "user@example.com" in raw
 

@@ -11,9 +11,10 @@ from app.agents.web_scraper import WebScraperAgent
 
 
 class TestGoalExtractor:
-    def test_mock_returns_search_prompts(self):
+    @pytest.mark.asyncio
+    async def test_mock_returns_search_prompts(self):
         agent = GoalExtractorAgent()
-        result = agent({"profile_targets": ["cloud", "devops"], "profile_skills": ["python"]})
+        result = await agent({"profile_targets": ["cloud", "devops"], "profile_skills": ["python"]})
         assert "search_prompts" in result
         prompts = result["search_prompts"]
         assert "cert_prompt" in prompts
@@ -21,45 +22,52 @@ class TestGoalExtractor:
         assert "job_prompt" in prompts
         assert "trend_prompt" in prompts
 
-    def test_mock_with_empty_targets(self):
+    @pytest.mark.asyncio
+    async def test_mock_with_empty_targets(self):
         agent = GoalExtractorAgent()
-        result = agent({"profile_targets": [], "profile_skills": []})
+        result = await agent({"profile_targets": [], "profile_skills": []})
         assert "search_prompts" in result
 
 
 class TestWebScraper:
-    def test_mock_returns_job_results(self):
+    @pytest.mark.asyncio
+    async def test_mock_returns_job_results(self):
         agent = WebScraperAgent()
-        result = agent({"search_prompt": "python jobs", "search_category": "job"})
+        result = await agent({"search_prompt": "python jobs", "search_category": "job"})
         assert "raw_job_results" in result
         assert len(result["raw_job_results"]) > 0
 
-    def test_mock_returns_cert_results(self):
+    @pytest.mark.asyncio
+    async def test_mock_returns_cert_results(self):
         agent = WebScraperAgent()
-        result = agent({"search_prompt": "aws certs", "search_category": "cert"})
+        result = await agent({"search_prompt": "aws certs", "search_category": "cert"})
         assert "raw_cert_results" in result
         assert len(result["raw_cert_results"]) > 0
 
-    def test_mock_returns_event_results(self):
+    @pytest.mark.asyncio
+    async def test_mock_returns_event_results(self):
         agent = WebScraperAgent()
-        result = agent({"search_prompt": "python conferences", "search_category": "event"})
+        result = await agent({"search_prompt": "python conferences", "search_category": "event"})
         assert "raw_event_results" in result
         assert len(result["raw_event_results"]) > 0
 
-    def test_mock_returns_trend_results(self):
+    @pytest.mark.asyncio
+    async def test_mock_returns_trend_results(self):
         agent = WebScraperAgent()
-        result = agent({"search_prompt": "AI trends", "search_category": "trend"})
+        result = await agent({"search_prompt": "AI trends", "search_category": "trend"})
         assert "raw_trend_results" in result
         assert len(result["raw_trend_results"]) > 0
 
-    def test_mock_unknown_category_returns_empty(self):
+    @pytest.mark.asyncio
+    async def test_mock_unknown_category_returns_empty(self):
         agent = WebScraperAgent()
-        result = agent({"search_prompt": "test", "search_category": "unknown"})
+        result = await agent({"search_prompt": "test", "search_category": "unknown"})
         assert result["raw_unknown_results"] == []
 
 
 class TestDataFormatter:
-    def test_mock_formats_raw_results(self):
+    @pytest.mark.asyncio
+    async def test_mock_formats_raw_results(self):
         agent = DataFormatterAgent()
         state = {
             "raw_job_results": [
@@ -75,7 +83,7 @@ class TestDataFormatter:
                 {"title": "AI Boom", "url": "https://example.com/4", "snippet": "AI is trending"},
             ],
         }
-        result = agent(state)
+        result = await agent(state)
         assert len(result["formatted_jobs"]) == 1
         assert result["formatted_jobs"][0]["title"] == "SWE at Acme"
         assert len(result["formatted_certifications"]) == 1
@@ -85,9 +93,10 @@ class TestDataFormatter:
         assert len(result["formatted_trends"]) == 1
         assert result["formatted_trends"][0]["title"] == "AI Boom"
 
-    def test_mock_handles_empty_results(self):
+    @pytest.mark.asyncio
+    async def test_mock_handles_empty_results(self):
         agent = DataFormatterAgent()
-        result = agent({"raw_job_results": [], "raw_cert_results": [], "raw_event_results": [], "raw_trend_results": []})
+        result = await agent({"raw_job_results": [], "raw_cert_results": [], "raw_event_results": [], "raw_trend_results": []})
         assert result["formatted_jobs"] == []
         assert result["formatted_certifications"] == []
         assert result["formatted_events"] == []
@@ -95,27 +104,30 @@ class TestDataFormatter:
 
 
 class TestCEOAgent:
-    def test_mock_returns_recommendations(self):
+    @pytest.mark.asyncio
+    async def test_mock_returns_recommendations(self):
         agent = CEOAgent()
-        result = agent({"profile_targets": ["cloud"], "formatted_jobs": []})
+        result = await agent({"profile_targets": ["cloud"], "formatted_jobs": []})
         assert "strategic_recommendations" in result
         assert "ceo_summary" in result
         assert len(result["strategic_recommendations"]) > 0
 
 
 class TestCFOAgent:
-    def test_mock_returns_assessments(self):
+    @pytest.mark.asyncio
+    async def test_mock_returns_assessments(self):
         agent = CFOAgent()
-        result = agent({"profile_targets": ["cloud"], "formatted_jobs": []})
+        result = await agent({"profile_targets": ["cloud"], "formatted_jobs": []})
         assert "risk_assessments" in result
         assert "cfo_summary" in result
         assert len(result["risk_assessments"]) > 0
 
 
 class TestCoverLetterAgent:
-    def test_mock_returns_content(self):
+    @pytest.mark.asyncio
+    async def test_mock_returns_content(self):
         agent = CoverLetterAgent()
-        result = agent({
+        result = await agent({
             "cv_content": "Python developer with 5 years experience",
             "jd_text": "Looking for a senior Python developer",
             "job_opportunity": {"title": "Senior Python Dev"},

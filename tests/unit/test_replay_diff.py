@@ -37,7 +37,7 @@ def diff_engine(writer: AuditWriter) -> DiffEngine:
     return DiffEngine(audit_writer=writer)
 
 
-def _make_bundle(
+async def _make_bundle(
     writer: AuditWriter,
     run_id: str,
     jobs: list[dict[str, Any]] | None = None,
@@ -52,7 +52,7 @@ def _make_bundle(
             {"title": "Software Engineer at Acme", "company": "Acme", "url": "https://example.com/job/1"},
             {"title": "Backend Developer at Globex", "company": "Globex", "url": "https://example.com/job/2"},
         ]
-    writer.create_run_bundle(
+    await writer.create_run_bundle(
         run_id=run_id,
         profile_hash="profile-hash-abc",
         policy_version_hash="policy-hash-xyz",
@@ -73,11 +73,12 @@ def _make_bundle(
 
 
 class TestReplayStrict:
-    def test_returns_same_artifacts_as_original(
+    @pytest.mark.asyncio
+    async def test_returns_same_artifacts_as_original(
         self, writer: AuditWriter, replay_engine: ReplayEngine
     ) -> None:
-        _make_bundle(writer, "orig-run-1")
-        result = replay_engine.replay_strict("orig-run-1", "replay-run-1")
+        await _make_bundle(writer, "orig-run-1")
+        result = await replay_engine.replay_strict("orig-run-1", "replay-run-1")
 
         assert result["run_id"] == "replay-run-1"
         assert result["replay_mode"] == "strict"
@@ -88,9 +89,10 @@ class TestReplayStrict:
         assert len(jobs) == 2
         assert jobs[0]["title"] == "Software Engineer at Acme"
 
-    def test_nonexistent_run_raises(self, replay_engine: ReplayEngine) -> None:
+    @pytest.mark.asyncio
+    async def test_nonexistent_run_raises(self, replay_engine: ReplayEngine) -> None:
         with pytest.raises(ValueError, match="No bundle found"):
-            replay_engine.replay_strict("nonexistent", "new-run")
+            await replay_engine.replay_strict("nonexistent", "new-run")
 
 
 # ------------------------------------------------------------------
@@ -99,23 +101,25 @@ class TestReplayStrict:
 
 
 class TestReplayRefresh:
-    def test_no_drift_when_identical(
+    @pytest.mark.asyncio
+    async def test_no_drift_when_identical(
         self, writer: AuditWriter, replay_engine: ReplayEngine
     ) -> None:
-        _make_bundle(writer, "orig-run-3")
-        original_bundle = writer.read_bundle("orig-run-3")
+        await _make_bundle(writer, "orig-run-3")
+        original_bundle = await writer.read_bundle("orig-run-3")
         assert original_bundle is not None
 
         new_result = original_bundle["final_artifacts"]
-        result = replay_engine.replay_refresh("orig-run-3", "refresh-run-1", new_result)
+        result = await replay_engine.replay_refresh("orig-run-3", "refresh-run-1", new_result)
 
         assert result["replay_mode"] == "refresh"
         assert result["drift"] == []
 
-    def test_detects_addition_drift(
+    @pytest.mark.asyncio
+    async def test_detects_addition_drift(
         self, writer: AuditWriter, replay_engine: ReplayEngine
     ) -> None:
-        _make_bundle(writer, "orig-run-4")
+        await _make_bundle(writer, "orig-run-4")
 
         new_result = {
             "jobs": [
@@ -128,16 +132,17 @@ class TestReplayRefresh:
             "events": [],
             "groups": [],
         }
-        result = replay_engine.replay_refresh("orig-run-4", "refresh-run-2", new_result)
+        result = await replay_engine.replay_refresh("orig-run-4", "refresh-run-2", new_result)
 
         additions = [d for d in result["drift"] if d["type"] == "addition"]
         assert len(additions) == 1
         assert additions[0]["title"] == "New Role at Initech"
 
-    def test_detects_removal_drift(
+    @pytest.mark.asyncio
+    async def test_detects_removal_drift(
         self, writer: AuditWriter, replay_engine: ReplayEngine
     ) -> None:
-        _make_bundle(writer, "orig-run-5")
+        await _make_bundle(writer, "orig-run-5")
 
         new_result = {
             "jobs": [
@@ -148,15 +153,16 @@ class TestReplayRefresh:
             "events": [],
             "groups": [],
         }
-        result = replay_engine.replay_refresh("orig-run-5", "refresh-run-3", new_result)
+        result = await replay_engine.replay_refresh("orig-run-5", "refresh-run-3", new_result)
 
         removals = [d for d in result["drift"] if d["type"] == "removal"]
         assert len(removals) == 1
         assert removals[0]["title"] == "Backend Developer at Globex"
 
-    def test_nonexistent_run_raises(self, replay_engine: ReplayEngine) -> None:
+    @pytest.mark.asyncio
+    async def test_nonexistent_run_raises(self, replay_engine: ReplayEngine) -> None:
         with pytest.raises(ValueError, match="No bundle found"):
-            replay_engine.replay_refresh("nonexistent", "new-run", {})
+            await replay_engine.replay_refresh("nonexistent", "new-run", {})
 
 
 # ------------------------------------------------------------------
@@ -165,14 +171,15 @@ class TestReplayRefresh:
 
 
 class TestDiffIdentical:
-    def test_no_changes_for_identical_runs(
+    @pytest.mark.asyncio
+    async def test_no_changes_for_identical_runs(
         self, writer: AuditWriter, diff_engine: DiffEngine
     ) -> None:
         jobs = [{"title": "SWE", "company": "Acme", "description": "code"}]
-        _make_bundle(writer, "run-a", jobs=jobs)
-        _make_bundle(writer, "run-b", jobs=jobs)
+        await _make_bundle(writer, "run-a", jobs=jobs)
+        await _make_bundle(writer, "run-b", jobs=jobs)
 
-        result = diff_engine.diff_runs("run-a", "run-b")
+        result = await diff_engine.diff_runs("run-a", "run-b")
 
         assert result["additions"] == []
         assert result["removals"] == []
@@ -183,7 +190,8 @@ class TestDiffIdentical:
 
 
 class TestDiffAdditionsRemovals:
-    def test_detects_additions(
+    @pytest.mark.asyncio
+    async def test_detects_additions(
         self, writer: AuditWriter, diff_engine: DiffEngine
     ) -> None:
         jobs_a = [{"title": "SWE", "company": "Acme"}]
@@ -191,16 +199,17 @@ class TestDiffAdditionsRemovals:
             {"title": "SWE", "company": "Acme"},
             {"title": "DevOps", "company": "Globex"},
         ]
-        _make_bundle(writer, "diff-a-1", jobs=jobs_a)
-        _make_bundle(writer, "diff-b-1", jobs=jobs_b)
+        await _make_bundle(writer, "diff-a-1", jobs=jobs_a)
+        await _make_bundle(writer, "diff-b-1", jobs=jobs_b)
 
-        result = diff_engine.diff_runs("diff-a-1", "diff-b-1")
+        result = await diff_engine.diff_runs("diff-a-1", "diff-b-1")
 
         assert result["summary"]["added"] == 1
         assert result["additions"][0]["title"] == "DevOps"
         assert result["summary"]["removed"] == 0
 
-    def test_detects_removals(
+    @pytest.mark.asyncio
+    async def test_detects_removals(
         self, writer: AuditWriter, diff_engine: DiffEngine
     ) -> None:
         jobs_a = [
@@ -208,24 +217,25 @@ class TestDiffAdditionsRemovals:
             {"title": "DevOps", "company": "Globex"},
         ]
         jobs_b = [{"title": "SWE", "company": "Acme"}]
-        _make_bundle(writer, "diff-a-2", jobs=jobs_a)
-        _make_bundle(writer, "diff-b-2", jobs=jobs_b)
+        await _make_bundle(writer, "diff-a-2", jobs=jobs_a)
+        await _make_bundle(writer, "diff-b-2", jobs=jobs_b)
 
-        result = diff_engine.diff_runs("diff-a-2", "diff-b-2")
+        result = await diff_engine.diff_runs("diff-a-2", "diff-b-2")
 
         assert result["summary"]["removed"] == 1
         assert result["removals"][0]["title"] == "DevOps"
         assert result["summary"]["added"] == 0
 
-    def test_detects_changes(
+    @pytest.mark.asyncio
+    async def test_detects_changes(
         self, writer: AuditWriter, diff_engine: DiffEngine
     ) -> None:
         jobs_a = [{"title": "SWE", "company": "Acme", "description": "Build things", "url": "https://example.com/1"}]
         jobs_b = [{"title": "SWE", "company": "Acme", "description": "Build awesome things", "url": "https://example.com/1-updated"}]
-        _make_bundle(writer, "diff-a-3", jobs=jobs_a)
-        _make_bundle(writer, "diff-b-3", jobs=jobs_b)
+        await _make_bundle(writer, "diff-a-3", jobs=jobs_a)
+        await _make_bundle(writer, "diff-b-3", jobs=jobs_b)
 
-        result = diff_engine.diff_runs("diff-a-3", "diff-b-3")
+        result = await diff_engine.diff_runs("diff-a-3", "diff-b-3")
 
         assert result["summary"]["changed"] == 1
         assert result["summary"]["added"] == 0
@@ -238,31 +248,34 @@ class TestDiffAdditionsRemovals:
 
 
 class TestDiffErrors:
-    def test_nonexistent_run_a_raises(
+    @pytest.mark.asyncio
+    async def test_nonexistent_run_a_raises(
         self, writer: AuditWriter, diff_engine: DiffEngine
     ) -> None:
-        _make_bundle(writer, "exists-run")
+        await _make_bundle(writer, "exists-run")
         with pytest.raises(ValueError, match="No bundle found for run nonexistent"):
-            diff_engine.diff_runs("nonexistent", "exists-run")
+            await diff_engine.diff_runs("nonexistent", "exists-run")
 
-    def test_nonexistent_run_b_raises(
+    @pytest.mark.asyncio
+    async def test_nonexistent_run_b_raises(
         self, writer: AuditWriter, diff_engine: DiffEngine
     ) -> None:
-        _make_bundle(writer, "exists-run-2")
+        await _make_bundle(writer, "exists-run-2")
         with pytest.raises(ValueError, match="No bundle found for run nonexistent"):
-            diff_engine.diff_runs("exists-run-2", "nonexistent")
+            await diff_engine.diff_runs("exists-run-2", "nonexistent")
 
 
 class TestDiffSummary:
-    def test_item_counts(
+    @pytest.mark.asyncio
+    async def test_item_counts(
         self, writer: AuditWriter, diff_engine: DiffEngine
     ) -> None:
         jobs_a = [{"title": "A", "company": "X"}]
         jobs_b = [{"title": "B", "company": "Y"}, {"title": "C", "company": "Z"}]
-        _make_bundle(writer, "count-a", jobs=jobs_a)
-        _make_bundle(writer, "count-b", jobs=jobs_b)
+        await _make_bundle(writer, "count-a", jobs=jobs_a)
+        await _make_bundle(writer, "count-b", jobs=jobs_b)
 
-        result = diff_engine.diff_runs("count-a", "count-b")
+        result = await diff_engine.diff_runs("count-a", "count-b")
 
         assert result["summary"]["items_a"] == 1
         assert result["summary"]["items_b"] == 2
