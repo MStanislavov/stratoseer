@@ -6,7 +6,21 @@ import json
 from typing import Any
 
 from app.agents.base import LLMAgent
+from pydantic import BaseModel
+
 from app.agents.schemas import DataFormatterOutput
+
+
+def _dedup(items: list[BaseModel]) -> list[dict]:
+    """Deduplicate by title, keeping the first occurrence."""
+    seen: set[str] = set()
+    out: list[dict] = []
+    for item in items:
+        title = getattr(item, "title", "")
+        if title not in seen:
+            seen.add(title)
+            out.append(item.model_dump())
+    return out
 
 
 class DataFormatterAgent(LLMAgent):
@@ -35,12 +49,12 @@ class DataFormatterAgent(LLMAgent):
         )
         result = await self._invoke_structured(DataFormatterOutput, system_prompt, user_content)
         return {
-            "formatted_jobs": [j.model_dump() for j in result.jobs],
-            "formatted_certifications": [c.model_dump() for c in result.certifications],
-            "formatted_courses": [c.model_dump() for c in result.courses],
-            "formatted_events": [e.model_dump() for e in result.events],
-            "formatted_groups": [g.model_dump() for g in result.groups],
-            "formatted_trends": [t.model_dump() for t in result.trends],
+            "formatted_jobs": _dedup(result.jobs),
+            "formatted_certifications": _dedup(result.certifications),
+            "formatted_courses": _dedup(result.courses),
+            "formatted_events": _dedup(result.events),
+            "formatted_groups": _dedup(result.groups),
+            "formatted_trends": _dedup(result.trends),
         }
 
     @staticmethod
