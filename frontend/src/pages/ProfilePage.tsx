@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
 import { Save, Trash2, Upload, Download, X, Plus, Play, Briefcase, FileEdit, Sparkles } from "lucide-react"
 import { getProfile, updateProfile, deleteProfile, uploadCv, extractSkillsFromCv, exportProfile, createProfile } from "@/api/profiles"
@@ -36,20 +36,57 @@ export default function ProfilePage() {
   const [constraints, setConstraints] = useState<string[]>([])
   const [skills, setSkills] = useState<string[]>([])
 
+  const draftKey = profileId ? `profile-draft-${profileId}` : null
+
   const load = useCallback(() => {
-    if (!profileId) return
+    if (!profileId || !draftKey) return
     getProfile(profileId)
       .then((p) => {
         setProfile(p)
+        const raw = localStorage.getItem(draftKey)
+        if (raw) {
+          try {
+            const draft = JSON.parse(raw)
+            setName(draft.name ?? p.name)
+            setTargets(draft.targets ?? p.targets ?? [])
+            setConstraints(draft.constraints ?? p.constraints ?? [])
+            setSkills(draft.skills ?? p.skills ?? [])
+            return
+          } catch { /* ignore corrupt draft */ }
+        }
         setName(p.name)
         setTargets(p.targets ?? [])
         setConstraints(p.constraints ?? [])
         setSkills(p.skills ?? [])
       })
       .finally(() => setLoading(false))
-  }, [profileId])
+  }, [profileId, draftKey])
 
   useEffect(() => { load() }, [load])
+
+  // Persist draft to localStorage on changes
+  const dirtyRef = useRef(false)
+  useEffect(() => {
+    if (!draftKey || !profile) return
+    const draft = { name, targets, constraints, skills }
+    const saved = { name: profile.name, targets: profile.targets ?? [], constraints: profile.constraints ?? [], skills: profile.skills ?? [] }
+    const dirty = JSON.stringify(draft) !== JSON.stringify(saved)
+    dirtyRef.current = dirty
+    if (dirty) {
+      localStorage.setItem(draftKey, JSON.stringify(draft))
+    } else {
+      localStorage.removeItem(draftKey)
+    }
+  }, [draftKey, name, targets, constraints, skills, profile])
+
+  // Warn on navigation away with unsaved changes
+  useEffect(() => {
+    return () => {
+      if (dirtyRef.current) {
+        toast.warning("You have unsaved profile changes. Your draft has been saved.")
+      }
+    }
+  }, [profileId])
 
   function canSave() {
     return targets.length > 0 && skills.length > 0 && !!profile?.cv_path
@@ -59,7 +96,7 @@ export default function ProfilePage() {
     if (!profileId) return
     if (!canSave()) {
       const missing: string[] = []
-      if (targets.length === 0) missing.push("targets")
+      if (targets.length === 0) missing.push("career goals")
       if (skills.length === 0) missing.push("skills")
       if (!profile?.cv_path) missing.push("a CV")
       toast.error(`Please add ${missing.join(", ")} before saving`)
@@ -68,6 +105,7 @@ export default function ProfilePage() {
     const data: ProfileUpdate = { name, targets, constraints, skills }
     const updated = await updateProfile(profileId, data)
     setProfile(updated)
+    if (draftKey) localStorage.removeItem(draftKey)
     await refreshProfiles()
     toast.success("Profile saved")
   }
@@ -75,6 +113,7 @@ export default function ProfilePage() {
   async function handleDelete() {
     if (!profileId) return
     await deleteProfile(profileId)
+    if (draftKey) localStorage.removeItem(draftKey)
     await refreshProfiles()
     toast.success("Profile deleted")
     navigate("/")
@@ -227,8 +266,20 @@ export default function ProfilePage() {
         </Card>
 
         {/* Tag lists */}
-        <TagCard label="Targets" items={targets} onChange={setTargets} />
-        <TagCard label="Constraints" items={constraints} onChange={setConstraints} />
+        <TagCard
+          label="Career Goals"
+          items={targets}
+          onChange={setTargets}
+          placeholder="e.g. Find a software engineering job / Obtain an AI certificate / Join communities"
+          examples={["Move into a leadership position", "Earn a professional certification", "Transition to a new industry", "Grow my professional network"]}
+        />
+        <TagCard
+          label="Constraints"
+          items={constraints}
+          onChange={setConstraints}
+          placeholder="e.g. Remote only, EU timezone"
+          examples={["Remote only", "No relocation", "Part-time or flexible hours", "Within commuting distance"]}
+        />
         <TagCard label="Skills" items={skills} onChange={setSkills} />
 
         {/* Quick actions */}
@@ -263,10 +314,14 @@ function TagCard({
   label,
   items,
   onChange,
+  placeholder,
+  examples,
 }: {
   label: string
   items: string[]
   onChange: (v: string[]) => void
+  placeholder?: string
+  examples?: string[]
 }) {
   const [input, setInput] = useState("")
 
@@ -298,14 +353,26 @@ function TagCard({
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={`Add ${label.toLowerCase()}...`}
+            placeholder={placeholder ?? `Add ${label.toLowerCase()}...`}
             onKeyDown={(e) => e.key === "Enter" && add()}
             className="flex-1"
           />
-          <Button variant="outline" size="icon" onClick={add}>
+          <Button variant="outline" size="icon" onClick={() => add()}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
+        {examples && items.length === 0 && (
+          <div className="mt-3">
+            <p className="text-xs text-muted-foreground mb-1.5">Examples:</p>
+            <div className="flex flex-wrap gap-1">
+              {examples.map((ex) => (
+                <Badge key={ex} variant="outline" className="text-muted-foreground">
+                  {ex}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

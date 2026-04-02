@@ -81,7 +81,7 @@ async def stream_run(
 ):
     """SSE stream of run progress events."""
     _ = profile_id
-    return EventSourceResponse(event_manager.event_stream(run_id))
+    return EventSourceResponse(event_manager.event_stream(run_id), ping=15)
 
 
 @router.post(

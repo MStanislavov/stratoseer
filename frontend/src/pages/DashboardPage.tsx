@@ -135,7 +135,7 @@ export default function DashboardPage() {
                     id="name"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder="e.g. Software Architect"
+                    placeholder="e.g. John Doe"
                     onKeyDown={(e) => e.key === "Enter" && handleCreate()}
                   />
                 </div>
@@ -270,7 +270,7 @@ function CreateProfileDialog({
               id="create-name"
               value={name}
               onChange={(e) => onNameChange(e.target.value)}
-              placeholder="e.g. Software Architect"
+              placeholder="e.g. John Doe"
               onKeyDown={(e) => e.key === "Enter" && onCreate()}
             />
           </div>

@@ -11,7 +11,7 @@ from app.agents.factory import AgentFactory
 from app.engine.audit_writer import AuditEvent, AuditWriter
 from app.engine.policy_engine import PolicyEngine
 from app.engine.verifier import Verifier
-from app.graphs.log import make_node, node_end, node_start
+from app.graphs.log import _publish_sse, make_node, node_end, node_start
 from app.graphs.state import CoverLetterState
 
 _P = "cover_letter"
@@ -26,12 +26,29 @@ def _make_audit_node(
     audit_writer: AuditWriter | None = None,
     policy_engine: PolicyEngine | None = None,
     verifier: Verifier | None = None,
+    event_manager: Any | None = None,
 ):
     """Return a graph node that writes audit events and creates the run bundle."""
 
     async def audit_node(state: CoverLetterState) -> dict[str, Any]:
+        run_id = state.get("run_id", "unknown")
+        now = datetime.now(timezone.utc).isoformat
+
+        await _publish_sse(event_manager, run_id, {
+            "type": "agent_started",
+            "agent": "audit_writer",
+            "timestamp": now(),
+        })
+
         if audit_writer is None:
             node_start(_P, state, "audit_writer", skipped=True)
+            await _publish_sse(event_manager, run_id, {
+                "type": "agent_completed",
+                "agent": "audit_writer",
+                "verification_status": "pass",
+                "elapsed": 0,
+                "timestamp": now(),
+            })
             return {}
 
         node_start(_P, state, "audit_writer")
@@ -85,7 +102,16 @@ def _make_audit_node(
             },
         )
 
-        node_end(_P, state, "audit_writer", time.monotonic() - t0)
+        elapsed = time.monotonic() - t0
+        node_end(_P, state, "audit_writer", elapsed)
+
+        await _publish_sse(event_manager, run_id, {
+            "type": "agent_completed",
+            "agent": "audit_writer",
+            "verification_status": "pass",
+            "elapsed": round(elapsed, 2),
+            "timestamp": now(),
+        })
         return {}
 
     return audit_node
@@ -118,7 +144,7 @@ def build_cover_letter_graph(
         _P, "cover_letter_agent", cover_letter_agent, "llm_generate_text",
         policy_engine, audit_writer, verifier, event_manager,
     ))
-    graph.add_node("audit_writer", _make_audit_node(audit_writer, policy_engine, verifier))
+    graph.add_node("audit_writer", _make_audit_node(audit_writer, policy_engine, verifier, event_manager))
 
     graph.set_entry_point("cover_letter_agent")
     graph.add_edge("cover_letter_agent", "audit_writer")
