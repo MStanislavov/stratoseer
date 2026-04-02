@@ -3,6 +3,22 @@
 from pydantic import BaseModel, Field
 
 
+# -- URLValidator output --
+
+class URLValidationItem(BaseModel):
+    """Validation result for a single URL."""
+
+    url: str = Field(description="The URL that was validated")
+    valid: bool = Field(description="True if the content is still active and relevant")
+    reason: str = Field(default="", description="Brief reason if invalid")
+
+
+class URLValidationOutput(BaseModel):
+    """Structured output from the URL validator with per-URL validity flags."""
+
+    results: list[URLValidationItem] = Field(default_factory=list)
+
+
 # -- GoalExtractor output --
 
 class GoalExtractorOutput(BaseModel):

@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     ceo_model: str = _DEFAULT_AGENT_MODEL
     cfo_model: str = _DEFAULT_AGENT_MODEL
     cover_letter_model: str = _DEFAULT_AGENT_MODEL
+    url_validator_model: str = _DEFAULT_AGENT_MODEL
 
     # Search
     search_max_results: int = 10

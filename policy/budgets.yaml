@@ -5,6 +5,9 @@ agents:
   web_scrapers:
     max_steps: 5
     max_tokens: 4000
+  url_validator:
+    max_steps: 5
+    max_tokens: 4000
   data_formatter:
     max_steps: 3
     max_tokens: 8000

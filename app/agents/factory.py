@@ -11,6 +11,7 @@ from app.agents.cfo_agent import CFOAgent
 from app.agents.cover_letter_agent import CoverLetterAgent
 from app.agents.data_formatter import DataFormatterAgent
 from app.agents.goal_extractor import GoalExtractorAgent
+from app.agents.url_validator import URLValidatorAgent
 from app.agents.web_scraper import WebScraperAgent
 from app.llm.prompt_loader import PromptLoader
 
@@ -25,6 +26,7 @@ class AgentModelConfig:
     ceo: str = ""
     cfo: str = ""
     cover_letter: str = ""
+    url_validator: str = ""
 
 
 class AgentFactory:
@@ -42,14 +44,12 @@ class AgentFactory:
         search_tool: Any | None = None,
         policy_engine: Any | None = None,
         agent_models: AgentModelConfig | None = None,
-        freshness_filter: Any | None = None,
     ):
         self._llm = llm
         self._prompt_loader = prompt_loader
         self._search_tool = search_tool
         self._policy_engine = policy_engine
         self._agent_models = agent_models or AgentModelConfig()
-        self._freshness_filter = freshness_filter
 
         # Singleton agent instances
         self._goal_extractor: GoalExtractorAgent | None = None
@@ -58,6 +58,7 @@ class AgentFactory:
         self._ceo: CEOAgent | None = None
         self._cfo: CFOAgent | None = None
         self._cover_letter: CoverLetterAgent | None = None
+        self._url_validator: URLValidatorAgent | None = None
 
         # Cache of ChatOpenAI instances keyed by model name
         self._llm_cache: dict[str, Any] = {}
@@ -111,7 +112,6 @@ class AgentFactory:
                 llm=self._get_llm(self._agent_models.web_scraper),
                 prompt_loader=self._prompt_loader,
                 search_tool=self._search_tool,
-                freshness_filter=self._freshness_filter,
             )
         return self._web_scraper
 
@@ -141,6 +141,15 @@ class AgentFactory:
                 prompt_loader=self._prompt_loader,
             )
         return self._cfo
+
+    def create_url_validator(self) -> AgentProtocol:
+        """Return the singleton URLValidatorAgent, creating it on first call."""
+        if self._url_validator is None:
+            self._url_validator = URLValidatorAgent(
+                llm=self._get_llm(self._agent_models.url_validator),
+                prompt_loader=self._prompt_loader,
+            )
+        return self._url_validator
 
     def create_cover_letter_agent(self) -> AgentProtocol:
         """Return the singleton CoverLetterAgent, creating it on first call."""

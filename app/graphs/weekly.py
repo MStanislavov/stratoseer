@@ -9,10 +9,9 @@ from langgraph.graph import END, StateGraph
 
 from app.agents.factory import AgentFactory
 from app.engine.audit_writer import AuditEvent, AuditWriter
-from app.engine.link_validator import LinkValidator
 from app.engine.policy_engine import PolicyEngine
 from app.engine.verifier import Verifier
-from app.graphs.log import make_fan_out_node, make_node, node_end, node_start, route, warn
+from app.graphs.log import _publish_sse, make_fan_out_node, make_node, node_end, node_start, route, warn
 from app.graphs.state import WeeklyState
 
 _P = "weekly"
@@ -35,10 +34,27 @@ def _make_audit_node(
     audit_writer: AuditWriter | None = None,
     policy_engine: PolicyEngine | None = None,
     verifier: Verifier | None = None,
+    event_manager: Any | None = None,
 ):
     async def audit_node(state: WeeklyState) -> dict[str, Any]:
+        run_id = state.get("run_id", "unknown")
+        now = datetime.now(timezone.utc).isoformat
+
+        await _publish_sse(event_manager, run_id, {
+            "type": "agent_started",
+            "agent": "audit_writer",
+            "timestamp": now(),
+        })
+
         if audit_writer is None:
             node_start(_P, state, "audit_writer", skipped=True)
+            await _publish_sse(event_manager, run_id, {
+                "type": "agent_completed",
+                "agent": "audit_writer",
+                "verification_status": "pass",
+                "elapsed": 0,
+                "timestamp": now(),
+            })
             return {}
 
         node_start(_P, state, "audit_writer")
@@ -107,28 +123,19 @@ def _make_audit_node(
             },
         )
 
-        node_end(_P, state, "audit_writer", time.monotonic() - t0)
+        elapsed = time.monotonic() - t0
+        node_end(_P, state, "audit_writer", elapsed)
+
+        await _publish_sse(event_manager, run_id, {
+            "type": "agent_completed",
+            "agent": "audit_writer",
+            "verification_status": "pass",
+            "elapsed": round(elapsed, 2),
+            "timestamp": now(),
+        })
         return {}
 
     return audit_node
-
-
-# ------------------------------------------------------------------
-# Link validation node (post-scraper, pre-routing)
-# ------------------------------------------------------------------
-
-
-def _make_link_validator_node(link_validator: LinkValidator | None = None):
-    async def link_validator_node(state: WeeklyState) -> dict[str, Any]:
-        if link_validator is None:
-            return {}
-        raw_jobs = list(state.get("raw_job_results", []))
-        kept, removed = await link_validator.validate_results(raw_jobs, "job")
-        if removed:
-            return {"raw_job_results": kept}
-        return {}
-
-    return link_validator_node
 
 
 # ------------------------------------------------------------------
@@ -179,7 +186,6 @@ def build_weekly_graph(
     agent_factory: AgentFactory | None = None,
     verifier: Verifier | None = None,
     event_manager: Any | None = None,
-    link_validator: LinkValidator | None = None,
 ) -> StateGraph:
     """Construct the weekly pipeline StateGraph."""
     if agent_factory is None:
@@ -187,6 +193,7 @@ def build_weekly_graph(
 
     goal_extractor = agent_factory.create_goal_extractor()
     web_scraper = agent_factory.create_web_scraper()
+    url_validator = agent_factory.create_url_validator()
     data_formatter = agent_factory.create_data_formatter()
     ceo = agent_factory.create_ceo()
     cfo = agent_factory.create_cfo()
@@ -202,6 +209,10 @@ def build_weekly_graph(
         _SCRAPER_CATEGORIES,
         policy_engine, audit_writer, verifier, event_manager,
     ))
+    graph.add_node("url_validator", make_node(
+        _P, "url_validator", url_validator, "web_fetch",
+        policy_engine, audit_writer, verifier, event_manager,
+    ))
     graph.add_node("data_formatter", make_node(
         _P, "data_formatter", data_formatter, "llm_structured_output",
         policy_engine, audit_writer, verifier, event_manager,
@@ -214,18 +225,17 @@ def build_weekly_graph(
         _P, "cfo", cfo, "llm_structured_output",
         policy_engine, audit_writer, verifier, event_manager,
     ))
-    graph.add_node("link_validator", _make_link_validator_node(link_validator))
-    graph.add_node("audit_writer", _make_audit_node(audit_writer, policy_engine, verifier))
+    graph.add_node("audit_writer", _make_audit_node(audit_writer, policy_engine, verifier, event_manager))
     graph.add_node("safe_degrade", _safe_degrade_node)
 
     graph.set_entry_point("goal_extractor")
     graph.add_edge("goal_extractor", "web_scrapers")
-    graph.add_edge("web_scrapers", "link_validator")
     graph.add_conditional_edges(
-        "link_validator",
+        "web_scrapers",
         _check_scraper_results,
-        {"format": "data_formatter", "safe_degrade": "safe_degrade"},
+        {"format": "url_validator", "safe_degrade": "safe_degrade"},
     )
+    graph.add_edge("url_validator", "data_formatter")
     graph.add_edge("data_formatter", "ceo")
     graph.add_edge("safe_degrade", "ceo")
     graph.add_edge("ceo", "cfo")

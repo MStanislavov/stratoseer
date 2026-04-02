@@ -19,7 +19,6 @@ from app.agents.factory import AgentFactory, AgentModelConfig
 from app.config import settings
 from app.db import async_session_factory
 from app.engine.audit_writer import AuditEvent, AuditWriter
-from app.engine.link_validator import LinkValidator
 from app.engine.policy_engine import PolicyEngine
 from app.graphs.cover_letter import build_cover_letter_graph
 from app.graphs.daily import build_daily_graph
@@ -59,30 +58,6 @@ def run_to_read(run: Run) -> RunRead:
     )
 
 
-def _load_freshness_config() -> dict:
-    """Load freshness config from policy/sources.yaml."""
-    from app.engine.policy_engine import PolicyEngine
-
-    try:
-        pe = PolicyEngine(settings.policy_dir)
-        sources = pe.get_policy("sources")
-        return sources.get("scouts", {}).get("web_scrapers", {}).get("freshness", {})
-    except Exception:
-        logger.debug("No freshness config in sources.yaml, using defaults")
-        return {}
-
-
-def _load_link_validation_config() -> dict:
-    """Load link validation config from policy/sources.yaml."""
-    from app.engine.policy_engine import PolicyEngine
-
-    try:
-        pe = PolicyEngine(settings.policy_dir)
-        sources = pe.get_policy("sources")
-        return sources.get("scouts", {}).get("web_scrapers", {}).get("link_validation", {})
-    except Exception:
-        logger.debug("No link_validation config in sources.yaml, using defaults")
-        return {}
 
 
 def get_agent_factory() -> Any:
@@ -100,9 +75,8 @@ def get_agent_factory() -> Any:
         ceo=settings.ceo_model,
         cfo=settings.cfo_model,
         cover_letter=settings.cover_letter_model,
+        url_validator=settings.url_validator_model,
     )
-
-    freshness_config = _load_freshness_config()
 
     if not settings.llm_enabled or not settings.api_key:
         _agent_factory = AgentFactory(
@@ -111,20 +85,15 @@ def get_agent_factory() -> Any:
         )
         return _agent_factory
 
-    from app.engine.freshness_filter import FreshnessFilter
-
-    freshness_filter = FreshnessFilter(freshness_config)
-
     llm = ChatOpenAI(
         model=settings.llm_model,
         temperature=settings.llm_temperature,
         api_key=settings.api_key,
     )
 
-    timelimit = freshness_config.get("default_timelimit", "m")
     search_tool = None
     try:
-        search_tool = SafeDuckDuckGoSearchTool(timelimit=timelimit)
+        search_tool = SafeDuckDuckGoSearchTool(timelimit="m")
     except ImportError:
         logger.warning("duckduckgo-search not installed, web scraper will use mock mode")
 
@@ -133,7 +102,6 @@ def get_agent_factory() -> Any:
         prompt_loader=prompt_loader,
         search_tool=search_tool,
         agent_models=agent_models,
-        freshness_filter=freshness_filter,
     )
     return _agent_factory
 
@@ -193,7 +161,6 @@ def _build_graph(
     agent_factory: Any,
     verifier: Any = None,
     run_event_manager: Any = None,
-    link_validator: LinkValidator | None = None,
 ) -> Any:
     """Build the appropriate LangGraph StateGraph for the given run mode."""
     builders = {
@@ -201,17 +168,13 @@ def _build_graph(
         "cover_letter": build_cover_letter_graph,
     }
     builder = builders.get(mode, build_daily_graph)
-    kwargs: dict[str, Any] = {
-        "policy_engine": policy_engine,
-        "audit_writer": audit_writer,
-        "agent_factory": agent_factory,
-        "verifier": verifier,
-        "event_manager": run_event_manager,
-    }
-    # Only daily and weekly pipelines support link_validator
-    if mode != "cover_letter" and link_validator is not None:
-        kwargs["link_validator"] = link_validator
-    return builder(**kwargs)
+    return builder(
+        policy_engine=policy_engine,
+        audit_writer=audit_writer,
+        agent_factory=agent_factory,
+        verifier=verifier,
+        event_manager=run_event_manager,
+    )
 
 
 async def _update_run_status(run_id: str, status: str, **extra: Any) -> None:
@@ -374,11 +337,9 @@ async def execute_run(run_id: str, profile_id: str, mode: str) -> None:
         verifier = Verifier(policy_engine=policy_engine)
 
         agent_factory = get_agent_factory()
-        link_validator = LinkValidator(config=_load_link_validation_config())
         graph = _build_graph(
             mode, policy_engine, audit_writer, agent_factory,
             verifier=verifier, run_event_manager=event_manager,
-            link_validator=link_validator,
         )
         compiled = graph.compile()
 
