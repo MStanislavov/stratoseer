@@ -71,8 +71,11 @@ async def spa_catch_all(full_path: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run(
+    import asyncio
+
+    config = uvicorn.Config(
         "app.main:app",
         host=_settings.app_host,
-        port=_settings.app_port
+        port=_settings.app_port,
     )
+    asyncio.run(uvicorn.Server(config).serve())
