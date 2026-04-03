@@ -58,6 +58,12 @@ def _make_audit_node(
         run_id = state.get("run_id", "unknown")
         policy_hash = policy_engine.version.hash if policy_engine else ""
 
+        await audit_writer.append(run_id, AuditEvent(
+            timestamp=now(),
+            event_type="agent_start",
+            agent="audit_writer",
+        ))
+
         # Build verifier report from accumulated results
         verifier_report: dict[str, Any] = {}
         if verifier:
@@ -105,6 +111,12 @@ def _make_audit_node(
         elapsed = time.monotonic() - t0
         node_end(_P, state, "audit_writer", elapsed)
 
+        await audit_writer.append(run_id, AuditEvent(
+            timestamp=now(),
+            event_type="agent_end",
+            agent="audit_writer",
+        ))
+
         await _publish_sse(event_manager, run_id, {
             "type": "agent_completed",
             "agent": "audit_writer",
@@ -123,9 +135,9 @@ def _make_audit_node(
 
 
 def build_cover_letter_graph(
+    agent_factory: AgentFactory,
     policy_engine: PolicyEngine | None = None,
     audit_writer: AuditWriter | None = None,
-    agent_factory: AgentFactory | None = None,
     verifier: Verifier | None = None,
     event_manager: Any | None = None,
 ) -> StateGraph:
@@ -133,9 +145,6 @@ def build_cover_letter_graph(
 
     Nodes: cover_letter_agent -> audit_writer
     """
-    if agent_factory is None:
-        agent_factory = AgentFactory()
-
     cover_letter_agent = agent_factory.create_cover_letter_agent()
 
     graph = StateGraph(CoverLetterState)

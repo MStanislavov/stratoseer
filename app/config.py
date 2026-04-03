@@ -42,7 +42,6 @@ class Settings(BaseSettings):
     api_key: str = ""
     llm_model: str = "gpt-4o-mini"
     llm_temperature: float = 0.3
-    llm_enabled: bool = True
 
     # Per-agent model overrides (blank = use llm_model default)
     goal_extractor_model: str = "gpt-5.4"

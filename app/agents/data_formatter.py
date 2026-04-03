@@ -36,9 +36,6 @@ class DataFormatterAgent(LLMAgent):
         raw_groups = state.get("raw_group_results", [])
         raw_trends = state.get("raw_trend_results", [])
 
-        if self._llm is None:
-            return self._mock_format(raw_jobs, raw_certs, raw_events, raw_groups, raw_trends)
-
         system_prompt = self._get_system_prompt()
         user_content = (
             f"Raw job results:\n{json.dumps(raw_jobs, indent=2)}\n\n"
@@ -57,82 +54,3 @@ class DataFormatterAgent(LLMAgent):
             "formatted_trends": _dedup(result.trends),
         }
 
-    @staticmethod
-    def _extract_company(title: str) -> str | None:
-        """Extract company from 'Role at Company' title pattern."""
-        if " at " in title:
-            return title.rsplit(" at ", 1)[1]
-        return None
-
-    @classmethod
-    def _mock_format(
-        cls,
-        raw_jobs: list[dict],
-        raw_certs: list[dict],
-        raw_events: list[dict],
-        raw_groups: list[dict],
-        raw_trends: list[dict],
-    ) -> dict[str, Any]:
-        """Convert raw results to formatted DTOs in mock mode."""
-        jobs = [
-            {
-                "title": r.get("title", "Untitled"),
-                "company": cls._extract_company(r.get("title", "")) or r.get("source"),
-                "url": r.get("url"),
-                "description": r.get("snippet"),
-                "location": None,
-                "salary_range": None,
-            }
-            for r in raw_jobs
-        ]
-        certs = [
-            {
-                "title": r.get("title", "Untitled"),
-                "provider": r.get("source"),
-                "url": r.get("url"),
-                "description": r.get("snippet"),
-                "cost": None,
-                "duration": None,
-            }
-            for r in raw_certs
-        ]
-        events = [
-            {
-                "title": r.get("title", "Untitled"),
-                "organizer": r.get("source"),
-                "url": r.get("url"),
-                "description": r.get("snippet"),
-                "event_date": None,
-                "location": None,
-            }
-            for r in raw_events
-        ]
-        groups = [
-            {
-                "title": r.get("title", "Untitled"),
-                "platform": r.get("source"),
-                "url": r.get("url"),
-                "description": r.get("snippet"),
-                "member_count": None,
-            }
-            for r in raw_groups
-        ]
-        trends = [
-            {
-                "title": r.get("title", "Untitled"),
-                "category": None,
-                "url": r.get("url"),
-                "description": r.get("snippet"),
-                "relevance": None,
-                "source": r.get("source"),
-            }
-            for r in raw_trends
-        ]
-        return {
-            "formatted_jobs": jobs,
-            "formatted_certifications": certs,
-            "formatted_courses": [],
-            "formatted_events": events,
-            "formatted_groups": groups,
-            "formatted_trends": trends,
-        }

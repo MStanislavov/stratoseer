@@ -26,7 +26,7 @@ class LLMAgent:
 
     def __init__(
         self,
-        llm: Any | None = None,
+        llm: Any,
         prompt_loader: PromptLoader | None = None,
     ):
         self._llm = llm

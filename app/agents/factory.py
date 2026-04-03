@@ -1,4 +1,4 @@
-"""Agent factory: creates singleton agents (mock or LLM-powered)."""
+"""Agent factory: creates singleton agents backed by LLM."""
 
 from __future__ import annotations
 
@@ -26,20 +26,17 @@ class AgentModelConfig:
     ceo: str = ""
     cfo: str = ""
     cover_letter: str = ""
-    url_validator: str = ""
 
 
 class AgentFactory:
-    """Creates stateless singleton agents.
+    """Creates stateless singleton agents backed by a ChatOpenAI LLM.
 
-    When llm is None, all agents run in mock mode (no LLM calls).
-    When llm is provided, agents use structured output.
     Per-agent model overrides are applied via agent_models config.
     """
 
     def __init__(
         self,
-        llm: Any | None = None,
+        llm: Any,
         prompt_loader: PromptLoader | None = None,
         search_tool: Any | None = None,
         policy_engine: Any | None = None,
@@ -63,15 +60,12 @@ class AgentFactory:
         # Cache of ChatOpenAI instances keyed by model name
         self._llm_cache: dict[str, Any] = {}
 
-    def _get_llm(self, model_override: str) -> Any | None:
+    def _get_llm(self, model_override: str) -> Any:
         """Return an LLM instance for the given model, or the default LLM.
 
         If model_override is set and differs from the base LLM's model,
         create a new Agent LLM with that model (cached).
         """
-        if self._llm is None:
-            return None
-
         if not model_override:
             return self._llm
 
@@ -90,11 +84,6 @@ class AgentFactory:
                 api_key=self._llm.openai_api_key,
             )
         return self._llm_cache[model_override]
-
-    @property
-    def is_live(self) -> bool:
-        """Return True if agents will use a real LLM, False for mock mode."""
-        return self._llm is not None
 
     def create_goal_extractor(self) -> AgentProtocol:
         """Return the singleton GoalExtractorAgent, creating it on first call."""
@@ -145,10 +134,10 @@ class AgentFactory:
     def create_url_validator(self) -> AgentProtocol:
         """Return the singleton URLValidatorAgent, creating it on first call."""
         if self._url_validator is None:
-            self._url_validator = URLValidatorAgent(
-                llm=self._get_llm(self._agent_models.url_validator),
-                prompt_loader=self._prompt_loader,
-            )
+            from app.llm.url_fetch_tool import URLFetchTool
+
+            fetch_tool = URLFetchTool()
+            self._url_validator = URLValidatorAgent(fetch_tool=fetch_tool)
         return self._url_validator
 
     def create_cover_letter_agent(self) -> AgentProtocol:

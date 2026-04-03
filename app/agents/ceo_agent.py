@@ -16,23 +16,6 @@ class CEOAgent(LLMAgent):
 
     async def __call__(self, state: dict[str, Any]) -> dict[str, Any]:
         """Analyze formatted data and return strategic recommendations with a summary."""
-        if self._llm is None:
-            return {
-                "strategic_recommendations": [
-                    {
-                        "area": "Career development",
-                        "recommendation": "Focus on cloud certifications to complement existing skills",
-                        "priority": "high",
-                    },
-                    {
-                        "area": "Networking",
-                        "recommendation": "Attend PyCon 2026 to build industry connections",
-                        "priority": "medium",
-                    },
-                ],
-                "ceo_summary": "Strategic outlook is positive. Focus on cloud skills and networking.",
-            }
-
         system_prompt = self._get_system_prompt()
         user_content = (
             f"Profile targets: {json.dumps(state.get('profile_targets', []))}\n\n"

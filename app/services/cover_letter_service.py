@@ -96,8 +96,6 @@ async def summarize_cv(raw_cv_content: str) -> str:
     if not raw_cv_content:
         return raw_cv_content
     factory = get_agent_factory()
-    if not factory.is_live:
-        return raw_cv_content
     from app.llm.prompt_loader import PromptLoader
 
     prompt_loader = PromptLoader(settings.prompts_dir)

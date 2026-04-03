@@ -23,21 +23,6 @@ class GoalExtractorAgent(LLMAgent):
         cv_summary = state.get("cv_summary", "")
         today = date.today().isoformat()
 
-        if self._llm is None:
-            # Mock mode: generate simple search queries from targets
-            target_str = ", ".join(targets) if targets else "software engineering"
-            constraint_str = ", ".join(constraints) if constraints else ""
-            suffix = f", constraints: {constraint_str}" if constraint_str else ""
-            return {
-                "search_prompts": {
-                    "cert_prompt": f"best certifications for {target_str}{suffix} {today}",
-                    "event_prompt": f"tech conferences and events for {target_str}{suffix} {today}",
-                    "group_prompt": f"professional communities and groups for {target_str}{suffix} {today}",
-                    "job_prompt": f"job openings for {target_str}{suffix} {today}",
-                    "trend_prompt": f"emerging trends and market developments in {target_str}{suffix} {today}",
-                },
-            }
-
         system_prompt = self._get_system_prompt(today=today)
         user_parts = [
             f"Today's date: {today}",

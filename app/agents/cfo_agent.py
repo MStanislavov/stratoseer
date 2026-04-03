@@ -16,25 +16,6 @@ class CFOAgent(LLMAgent):
 
     async def __call__(self, state: dict[str, Any]) -> dict[str, Any]:
         """Analyze formatted data and return risk assessments with a summary."""
-        if self._llm is None:
-            return {
-                "risk_assessments": [
-                    {
-                        "area": "Job market",
-                        "risk_level": "medium",
-                        "time_investment": "2-3 months for job search",
-                        "roi_estimate": "high",
-                    },
-                    {
-                        "area": "Certifications",
-                        "risk_level": "low",
-                        "time_investment": "40-80 hours study time",
-                        "roi_estimate": "medium",
-                    },
-                ],
-                "cfo_summary": "Investment in certifications has low risk and good ROI.",
-            }
-
         system_prompt = self._get_system_prompt()
         user_content = (
             f"Profile targets: {json.dumps(state.get('profile_targets', []))}\n\n"

@@ -75,15 +75,10 @@ def get_agent_factory() -> Any:
         ceo=settings.ceo_model,
         cfo=settings.cfo_model,
         cover_letter=settings.cover_letter_model,
-        url_validator=settings.url_validator_model,
     )
 
-    if not settings.llm_enabled or not settings.api_key:
-        _agent_factory = AgentFactory(
-            prompt_loader=prompt_loader,
-            agent_models=agent_models,
-        )
-        return _agent_factory
+    if not settings.api_key:
+        raise RuntimeError("API_KEY is required. Set it in your .env file.")
 
     llm = ChatOpenAI(
         model=settings.llm_model,
@@ -95,7 +90,7 @@ def get_agent_factory() -> Any:
     try:
         search_tool = SafeDuckDuckGoSearchTool(timelimit="m")
     except ImportError:
-        logger.warning("duckduckgo-search not installed, web scraper will use mock mode")
+        logger.warning("duckduckgo-search not installed, web scraper search tool unavailable")
 
     _agent_factory = AgentFactory(
         llm=llm,

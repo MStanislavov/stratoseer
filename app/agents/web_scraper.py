@@ -15,9 +15,8 @@ logger = logging.getLogger(__name__)
 class WebScraperAgent(LLMAgent):
     """Searches the web via an LLM with a bound search tool.
 
-    In mock mode (llm=None), returns hardcoded fixture data.
-    In live mode, binds the search tool to the LLM and uses a
-    tool-calling loop to find and return structured results.
+    Binds the search tool to the LLM and uses a tool-calling loop
+    to find and return structured results.
     """
 
     agent_name = "web_scraper"
@@ -36,9 +35,6 @@ class WebScraperAgent(LLMAgent):
         prompt = state.get("search_prompt", "")
         category = state.get("search_category", "")
         result_key = f"raw_{category}_results"
-
-        if self._llm is None:
-            return {result_key: self._mock_results(category)}
 
         try:
             today = date.today().isoformat()
@@ -93,30 +89,3 @@ class WebScraperAgent(LLMAgent):
             logger.warning("WebScraper failed for %s: %s", category, exc)
             return {result_key: [], "errors": [f"WebScraper ({category}): {exc}"]}
 
-    @staticmethod
-    def _mock_results(category: str) -> list[dict[str, str]]:
-        """Return hardcoded results for testing."""
-        mocks = {
-            "job": [
-                {"title": "Senior Python Developer at TechCorp", "url": "https://example.com/job/1", "snippet": "Python, FastAPI, cloud experience required", "source": "LinkedIn"},
-                {"title": "Backend Engineer at StartupXYZ", "url": "https://example.com/job/2", "snippet": "Building scalable APIs with Python", "source": "Indeed"},
-                {"title": "Full Stack Developer at BigCo", "url": "https://example.com/job/3", "snippet": "React + Python full stack role", "source": "Glassdoor"},
-            ],
-            "cert": [
-                {"title": "AWS Solutions Architect", "url": "https://example.com/cert/1", "snippet": "Cloud architecture certification", "source": "Amazon"},
-                {"title": "Google Cloud Professional", "url": "https://example.com/cert/2", "snippet": "GCP certification program", "source": "Google"},
-            ],
-            "event": [
-                {"title": "PyCon 2026", "url": "https://example.com/event/1", "snippet": "Annual Python conference", "source": "Python Software Foundation"},
-                {"title": "KubeCon Europe", "url": "https://example.com/event/2", "snippet": "Kubernetes community conference", "source": "CNCF"},
-            ],
-            "group": [
-                {"title": "Python Discord", "url": "https://example.com/group/1", "snippet": "Active Python community", "source": "Discord"},
-                {"title": "r/Python", "url": "https://example.com/group/2", "snippet": "Python subreddit community", "source": "Reddit"},
-            ],
-            "trend": [
-                {"title": "AI-Driven DevOps Automation", "url": "https://example.com/trend/1", "snippet": "Growing adoption of AI tools in CI/CD pipelines", "source": "TechCrunch"},
-                {"title": "Edge Computing Growth", "url": "https://example.com/trend/2", "snippet": "Edge computing market expanding rapidly", "source": "Hacker News"},
-            ],
-        }
-        return mocks.get(category, [])
