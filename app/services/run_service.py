@@ -216,9 +216,7 @@ async def _load_profile(profile_id: str) -> dict[str, Any]:
             "work_arrangement": getattr(profile, "work_arrangement", "") or "",
             "event_attendance": getattr(profile, "event_attendance", "") or "",
             "target_certifications": _parse_json_list(profile, "target_certifications"),
-            "learning_budget": getattr(profile, "learning_budget", "") or "",
             "learning_format": getattr(profile, "learning_format", "") or "",
-            "time_commitment": getattr(profile, "time_commitment", "") or "",
         }
 
 
@@ -292,14 +290,19 @@ async def persist_results(
                 cost=course.get("cost"),
                 duration=course.get("duration"),
             ))
+        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         for event in result.get("formatted_events", []):
+            event_date = event.get("event_date")
+            if event_date and event_date < today_str:
+                logger.info("Skipping past event %s (date=%s)", event.get("title"), event_date)
+                continue
             session.add(Event(
                 profile_id=profile_id, run_id=run_id,
                 title=event.get("title", "Untitled"),
                 organizer=event.get("organizer"),
                 url=event.get("url"),
                 description=event.get("description"),
-                event_date=event.get("event_date"),
+                event_date=event_date,
                 location=event.get("location"),
             ))
         for group in result.get("formatted_groups", []):

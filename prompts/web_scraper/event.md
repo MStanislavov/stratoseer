@@ -34,7 +34,7 @@ After collecting search results, use the `fetch_url` tool to visit each candidat
 
 ## Guidelines
 
-- **Extract specific URLs**: Always use the direct event page URL, not a generic platform homepage.
+- **Extract specific URLs**: Always use the direct event page URL, not a generic platform homepage. **Exception**: Meetup topic and community pages (e.g., `meetup.com/topics/...`) are acceptable -- they aggregate relevant upcoming meetups.
 - **Follow the directive literally**: Search for exactly the topics and technologies mentioned.
 - **CRITICAL**: Only include events with dates AFTER {today}. If an event's date is before {today}, skip it entirely. If the event date is unclear or not stated, skip it.
 - Deduplicate results with the same URL
