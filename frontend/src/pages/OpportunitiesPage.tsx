@@ -390,7 +390,8 @@ export default function OpportunitiesPage() {
                   subtitle={t.source}
                   description={t.description}
                   url={t.url}
-                  badges={[t.category, t.relevance].filter(Boolean) as string[]}
+                  badges={[t.category].filter(Boolean) as string[]}
+                  relevance={t.relevance}
                   onEdit={async (id, newTitle) => {
                     await updateResult(profileId!, "trends", id, { title: newTitle })
                     setTrends((prev) => prev.map((x) => (x.id === id ? { ...x, title: newTitle } : x)))
@@ -437,6 +438,7 @@ function ResultCard({
   url,
   badges,
   onEdit,
+  relevance,
   onDelete,
   onForceDelete,
 }: {
@@ -447,6 +449,7 @@ function ResultCard({
   description: string | null | undefined
   url: string | null | undefined
   badges: string[]
+  relevance?: string | null
   onEdit?: (id: string, newTitle: string) => Promise<void>
   onDelete?: (id: string) => Promise<void>
   onForceDelete?: (id: string) => Promise<void>
@@ -571,6 +574,9 @@ function ResultCard({
                 </Badge>
               ))}
             </div>
+          )}
+          {relevance && (
+            <p className="text-xs text-muted-foreground mt-1 break-words">{relevance}</p>
           )}
           {url && (
             <a
