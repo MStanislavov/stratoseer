@@ -89,4 +89,5 @@ Each raw result includes a `source` field identifying where it was found. Use th
 - Deduplicate entries with the same title
 - A single raw result may contain information for multiple categories (e.g., a certification page may also list courses)
 - Be conservative: only include items that are clearly relevant to the category
+- **Job URLs must use LinkedIn format**: All job URLs must follow the pattern `https://www.linkedin.com/jobs/view/...`. If a job result has a URL that does not match this format, drop it from the response.
 - Every array may be empty if no relevant items are found for that category

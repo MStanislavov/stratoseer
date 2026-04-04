@@ -24,7 +24,7 @@ Given the user's profile targets (career goals), skills, constraints, and option
 - **Write full directive sentences**: Each prompt must be read as a clear instruction, not a search-engine keyword string.
 - **Include the year ({today}) for events** so results are current.
 - **Do not hallucinate details**: Only reference skills, technologies, locations, and seniority levels that appear in the user's profile.
-- **Include 2-3 recommended websites in each directive** so the web scraper targets the right sources. Jobs: LinkedIn, RemoteOK. Certifications: official vendor sites (AWS, Microsoft Learn, Google, Salesforce Trailhead), Coursera, Udemy, edX, LinkedIn Learning, DataCamp, Credly, Accredible. Events: Eventbrite, Meetup, Luma, LinkedIn Events, Hopin, Airmeet. Groups: Discord, Reddit, LinkedIn Groups, and course platforms (Coursera, Udemy, edX, LinkedIn Learning, Skillshare, Pluralsight, Khan Academy, Codecademy, DataCamp, MasterClass, Brilliant, FutureLearn, Domestika, Treehouse). Trends: Google Trends, Exploding Topics, Glimpse, TrendHunter, SparkToro, Reddit (r/popular, r/technology), X (Twitter) Trending, BuzzSumo, TechCrunch, Hacker News, ArXiv.
+- **Include 2-3 recommended websites in each directive** so the web scraper targets the right sources. Jobs: LinkedIn. Certifications: official vendor sites (AWS, Microsoft Learn, Google, Salesforce Trailhead), Coursera, Udemy, edX, LinkedIn Learning, DataCamp, Credly, Accredible. Events: Eventbrite, Meetup, Luma, LinkedIn Events, Hopin, Airmeet. Groups: Discord, Reddit, LinkedIn Groups, and course platforms (Coursera, Udemy, edX, LinkedIn Learning, Skillshare, Pluralsight, Khan Academy, Codecademy, DataCamp, MasterClass, Brilliant, FutureLearn, Domestika, Treehouse). Trends: Google Trends, Exploding Topics, Glimpse, TrendHunter, SparkToro, Reddit (r/popular, r/technology), X (Twitter) Trending, BuzzSumo, TechCrunch, Hacker News, ArXiv.
 
 ## Few-Shot Examples
 
@@ -35,7 +35,7 @@ Given the user's profile targets (career goals), skills, constraints, and option
 - **cert_prompt**: "Search Coursera, Udemy, and aws.amazon.com for AWS cloud certifications and software architecture courses suitable for a backend developer with Java and Spring Boot experience"
 - **event_prompt**: "Search Eventbrite, Meetup, and Luma for 2026 software architecture and cloud computing conferences and meetups"
 - **group_prompt**: "Search Discord, Reddit, LinkedIn Groups, Coursera, Udemy, and Pluralsight for Java backend development and cloud architecture communities, forums, and learning groups"
-- **job_prompt**: "Search LinkedIn and RemoteOK for current Java backend developer job openings requiring Spring Boot and PostgreSQL"
+- **job_prompt**: "Search LinkedIn for current Java backend developer job openings requiring Spring Boot and PostgreSQL"
 - **trend_prompt**: "Search Google Trends, Exploding Topics, Reddit r/technology, TechCrunch, and Hacker News for emerging trends and developments in Java backend development, cloud-native architecture, and enterprise software"
 
 ### Example 2
@@ -45,7 +45,7 @@ Given the user's profile targets (career goals), skills, constraints, and option
 - **cert_prompt**: "Search Coursera, Udemy, and official TensorFlow documentation for AI and machine learning certifications and courses for experienced Python developers, including TensorFlow and deep learning programs"
 - **event_prompt**: "Search Eventbrite, Meetup, and Luma for 2026 AI, machine learning, and Python engineering conferences and events"
 - **group_prompt**: "Search Discord, Reddit, LinkedIn Groups, Coursera, DataCamp, and edX for AI/ML engineering and Python developer communities, discussion forums, and learning groups"
-- **job_prompt**: "Search LinkedIn and RemoteOK for senior Python developer and ML engineer job openings requiring Python, TensorFlow, and FastAPI"
+- **job_prompt**: "Search LinkedIn for senior Python developer and ML engineer job openings requiring Python, TensorFlow, and FastAPI"
 - **trend_prompt**: "Search Google Trends, Exploding Topics, Reddit r/technology, TechCrunch, and ArXiv for emerging trends in AI engineering, machine learning infrastructure, and Python ecosystem developments"
 
 ### Example 3 (with constraints)
@@ -56,5 +56,5 @@ Given the user's profile targets (career goals), skills, constraints, and option
 - **cert_prompt**: "Search Coursera, Udemy, and official CompTIA/Offensive Security sites for cybersecurity certifications and training programs suitable for someone with Linux and DevOps experience, such as CompTIA Security+ or OSCP, preferring online/remote courses"
 - **event_prompt**: "Search Eventbrite, Meetup, and Luma for 2026 cybersecurity and DevOps virtual or online conferences and events"
 - **group_prompt**: "Search Discord, Reddit, LinkedIn Groups, Pluralsight, Udemy, and Codecademy for cybersecurity and DevOps communities, Kubernetes user groups, and infrastructure automation forums and learning groups"
-- **job_prompt**: "Search LinkedIn and RemoteOK for remote DevOps engineer job openings requiring Kubernetes, Terraform, and CI/CD experience with salary above 150k"
+- **job_prompt**: "Search LinkedIn for remote DevOps engineer job openings requiring Kubernetes, Terraform, and CI/CD experience with salary above 150k"
 - **trend_prompt**: "Search Google Trends, Exploding Topics, BuzzSumo, Reddit r/technology, and TechCrunch for emerging trends in DevSecOps, cloud security, and infrastructure automation"
