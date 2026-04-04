@@ -5,7 +5,7 @@ import pytest
 async def test_create_profile(client):
     resp = await client.post(
         "/api/profiles",
-        json={"name": "Architect", "targets": ["cloud", "infra"], "skills": ["aws"]},
+        json={"name": "Architect", "targets": ["cloud", "infra"], "skills": ["aws"], "preferred_titles": ["Cloud Architect"]},
     )
     assert resp.status_code == 201
     data = resp.json()
@@ -20,7 +20,7 @@ async def test_create_profile(client):
 
 @pytest.mark.asyncio
 async def test_create_profile_minimal(client):
-    resp = await client.post("/api/profiles", json={"name": "Developer"})
+    resp = await client.post("/api/profiles", json={"name": "Developer", "preferred_titles": ["Developer"]})
     assert resp.status_code == 201
     data = resp.json()
     assert data["name"] == "Developer"
@@ -29,26 +29,27 @@ async def test_create_profile_minimal(client):
 
 @pytest.mark.asyncio
 async def test_create_profile_missing_name(client):
-    resp = await client.post("/api/profiles", json={})
+    resp = await client.post("/api/profiles", json={"preferred_titles": ["Dev"]})
     assert resp.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_create_profile_empty_name(client):
-    resp = await client.post("/api/profiles", json={"name": ""})
+    resp = await client.post("/api/profiles", json={"name": "", "preferred_titles": ["Dev"]})
     assert resp.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_create_profile_name_too_long(client):
-    resp = await client.post("/api/profiles", json={"name": "x" * 201})
+    resp = await client.post("/api/profiles", json={"name": "x" * 201, "preferred_titles": ["Dev"]})
     assert resp.status_code == 422
+
 
 
 @pytest.mark.asyncio
 async def test_list_profiles(client):
-    await client.post("/api/profiles", json={"name": "Alpha"})
-    await client.post("/api/profiles", json={"name": "Beta"})
+    await client.post("/api/profiles", json={"name": "Alpha", "preferred_titles": ["Dev"]})
+    await client.post("/api/profiles", json={"name": "Beta", "preferred_titles": ["Dev"]})
     resp = await client.get("/api/profiles")
     assert resp.status_code == 200
     data = resp.json()
@@ -60,7 +61,7 @@ async def test_list_profiles(client):
 @pytest.mark.asyncio
 async def test_get_profile(client):
     create_resp = await client.post(
-        "/api/profiles", json={"name": "Architect", "skills": ["python"]}
+        "/api/profiles", json={"name": "Architect", "skills": ["python"], "preferred_titles": ["Architect"]}
     )
     profile_id = create_resp.json()["id"]
     resp = await client.get(f"/api/profiles/{profile_id}")
@@ -78,7 +79,7 @@ async def test_get_profile_not_found(client):
 @pytest.mark.asyncio
 async def test_update_profile(client):
     create_resp = await client.post(
-        "/api/profiles", json={"name": "Old Name", "targets": ["a"]}
+        "/api/profiles", json={"name": "Old Name", "targets": ["a"], "preferred_titles": ["Dev"]}
     )
     profile_id = create_resp.json()["id"]
 
@@ -104,7 +105,7 @@ async def test_update_profile_not_found(client):
 
 @pytest.mark.asyncio
 async def test_delete_profile(client):
-    create_resp = await client.post("/api/profiles", json={"name": "ToDelete"})
+    create_resp = await client.post("/api/profiles", json={"name": "ToDelete", "preferred_titles": ["Dev"]})
     profile_id = create_resp.json()["id"]
 
     del_resp = await client.delete(f"/api/profiles/{profile_id}")
@@ -125,7 +126,7 @@ async def test_update_profile_partial(client):
     """Only the fields provided in the update body are changed."""
     create_resp = await client.post(
         "/api/profiles",
-        json={"name": "Original", "targets": ["t1"], "skills": ["s1"]},
+        json={"name": "Original", "targets": ["t1"], "skills": ["s1"], "preferred_titles": ["Dev"]},
     )
     profile_id = create_resp.json()["id"]
 

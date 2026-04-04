@@ -3,31 +3,15 @@
 from pydantic import BaseModel, Field
 
 
-# -- URLValidator output --
-
-class URLValidationItem(BaseModel):
-    """Validation result for a single URL."""
-
-    url: str = Field(description="The URL that was validated")
-    valid: bool = Field(description="True if the content is still active and relevant")
-    reason: str = Field(default="", description="Brief reason if invalid")
-
-
-class URLValidationOutput(BaseModel):
-    """Structured output from the URL validator with per-URL validity flags."""
-
-    results: list[URLValidationItem] = Field(default_factory=list)
-
-
 # -- GoalExtractor output --
 
 class GoalExtractorOutput(BaseModel):
     """Structured output from the GoalExtractor agent containing search prompts per category."""
 
-    cert_prompt: str = Field(description="Full directive sentence to find certifications and courses, e.g. 'Search for AWS certifications and architecture courses for a Java developer'")
+    cert_prompt: str = Field(description="Full directive sentence to find vendor certifications, e.g. 'Search for AWS Solutions Architect and CompTIA Security+ certifications'")
+    course_prompt: str = Field(description="Full directive sentence to find training courses, e.g. 'Search Coursera and Udemy for Python and machine learning courses'")
     event_prompt: str = Field(description="Full directive sentence to find events and conferences, e.g. 'Find 2026 software architecture and AI conferences in Europe'")
     group_prompt: str = Field(description="Full directive sentence to find professional communities and groups, e.g. 'Search Discord, Reddit, and LinkedIn for Java and cloud computing communities'")
-    job_prompt: str = Field(description="Full directive sentence to find job openings, e.g. 'Search for senior Java and Python developer job openings'")
     trend_prompt: str = Field(description="Full directive sentence to find trends, e.g. 'Find emerging trends in cloud-native architecture and AI engineering'")
 
 

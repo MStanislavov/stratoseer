@@ -9,7 +9,7 @@ import pytest
 async def test_create_cover_letter_requires_input(client):
     """POST without job_opportunity_id or jd_text should fail."""
     profile_resp = await client.post(
-        "/api/profiles", json={"name": "CL Validation"}
+        "/api/profiles", json={"name": "CL Validation", "preferred_titles": ["Dev"]}
     )
     profile_id = profile_resp.json()["id"]
 
@@ -24,7 +24,7 @@ async def test_create_cover_letter_requires_input(client):
 async def test_get_cover_letter_not_found(client):
     """GET nonexistent cover letter returns 404."""
     profile_resp = await client.post(
-        "/api/profiles", json={"name": "CL 404"}
+        "/api/profiles", json={"name": "CL 404", "preferred_titles": ["Dev"]}
     )
     profile_id = profile_resp.json()["id"]
 

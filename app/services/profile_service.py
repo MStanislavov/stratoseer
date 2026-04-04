@@ -57,6 +57,16 @@ def profile_to_read(profile: UserProfile) -> ProfileRead:
         constraints=_deserialize_list(profile.constraints),
         skills=_deserialize_list(profile.skills),
         cv_path=profile.cv_path,
+        preferred_titles=_deserialize_list(profile.preferred_titles),
+        experience_level=profile.experience_level,
+        industries=_deserialize_list(profile.industries),
+        locations=_deserialize_list(profile.locations),
+        work_arrangement=profile.work_arrangement,
+        event_attendance=profile.event_attendance,
+        target_certifications=_deserialize_list(profile.target_certifications),
+        learning_budget=profile.learning_budget,
+        learning_format=profile.learning_format,
+        time_commitment=profile.time_commitment,
         created_at=profile.created_at,
         updated_at=profile.updated_at,
     )
@@ -69,6 +79,16 @@ async def create_profile(db: AsyncSession, body: ProfileCreate) -> ProfileRead:
         targets=_serialize_list(body.targets),
         constraints=_serialize_list(body.constraints),
         skills=_serialize_list(body.skills),
+        preferred_titles=_serialize_list(body.preferred_titles),
+        experience_level=body.experience_level,
+        industries=_serialize_list(body.industries),
+        locations=_serialize_list(body.locations),
+        work_arrangement=body.work_arrangement,
+        event_attendance=body.event_attendance,
+        target_certifications=_serialize_list(body.target_certifications),
+        learning_budget=body.learning_budget,
+        learning_format=body.learning_format,
+        time_commitment=body.time_commitment,
     )
     db.add(profile)
     await db.commit()
@@ -100,7 +120,7 @@ async def update_profile(
         return None
 
     update_data = body.model_dump(exclude_unset=True)
-    for field in ("targets", "constraints", "skills"):
+    for field in ("targets", "constraints", "skills", "preferred_titles", "industries", "locations", "target_certifications"):
         if field in update_data:
             update_data[field] = _serialize_list(update_data[field])
 
@@ -190,6 +210,16 @@ async def export_profile(db: AsyncSession, profile_id: str) -> dict | None:
         "targets": _deserialize_list(profile.targets),
         "constraints": _deserialize_list(profile.constraints),
         "skills": _deserialize_list(profile.skills),
+        "preferred_titles": _deserialize_list(profile.preferred_titles),
+        "experience_level": profile.experience_level,
+        "industries": _deserialize_list(profile.industries),
+        "locations": _deserialize_list(profile.locations),
+        "work_arrangement": profile.work_arrangement,
+        "event_attendance": profile.event_attendance,
+        "target_certifications": _deserialize_list(profile.target_certifications),
+        "learning_budget": profile.learning_budget,
+        "learning_format": profile.learning_format,
+        "time_commitment": profile.time_commitment,
     }
 
 
@@ -201,6 +231,16 @@ async def import_profile(db: AsyncSession, data: dict) -> ProfileRead:
         targets=data.get("targets"),
         constraints=data.get("constraints"),
         skills=data.get("skills"),
+        preferred_titles=data.get("preferred_titles"),
+        experience_level=data.get("experience_level"),
+        industries=data.get("industries"),
+        locations=data.get("locations"),
+        work_arrangement=data.get("work_arrangement"),
+        event_attendance=data.get("event_attendance"),
+        target_certifications=data.get("target_certifications"),
+        learning_budget=data.get("learning_budget"),
+        learning_format=data.get("learning_format"),
+        time_commitment=data.get("time_commitment"),
     )
     return await create_profile(db, body)
 

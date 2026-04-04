@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ProfileCreate(BaseModel):
@@ -10,6 +10,18 @@ class ProfileCreate(BaseModel):
     targets: list[str] | None = None
     constraints: list[str] | None = None
     skills: list[str] | None = None
+    # Career & Job
+    preferred_titles: list[str] | None = None
+    experience_level: str | None = None
+    industries: list[str] | None = None
+    locations: list[str] | None = None
+    work_arrangement: str | None = None
+    event_attendance: str | None = None
+    # Learning & Certification
+    target_certifications: list[str] | None = None
+    learning_budget: str | None = None
+    learning_format: str | None = None
+    time_commitment: str | None = None
 
 
 class ProfileUpdate(BaseModel):
@@ -19,6 +31,25 @@ class ProfileUpdate(BaseModel):
     targets: list[str] | None = None
     constraints: list[str] | None = None
     skills: list[str] | None = None
+    # Career & Job
+    preferred_titles: list[str] | None = None
+    experience_level: str | None = None
+    industries: list[str] | None = None
+    locations: list[str] | None = None
+    work_arrangement: str | None = None
+    event_attendance: str | None = None
+    # Learning & Certification
+    target_certifications: list[str] | None = None
+    learning_budget: str | None = None
+    learning_format: str | None = None
+    time_commitment: str | None = None
+
+    @field_validator("preferred_titles")
+    @classmethod
+    def preferred_titles_not_empty(cls, v: list[str] | None) -> list[str] | None:
+        if v is not None and len(v) == 0:
+            raise ValueError("preferred_titles cannot be empty")
+        return v
 
 
 class ProfileRead(BaseModel):
@@ -30,6 +61,18 @@ class ProfileRead(BaseModel):
     constraints: list[str] | None = None
     skills: list[str] | None = None
     cv_path: str | None = None
+    # Career & Job
+    preferred_titles: list[str] | None = None
+    experience_level: str | None = None
+    industries: list[str] | None = None
+    locations: list[str] | None = None
+    work_arrangement: str | None = None
+    event_attendance: str | None = None
+    # Learning & Certification
+    target_certifications: list[str] | None = None
+    learning_budget: str | None = None
+    learning_format: str | None = None
+    time_commitment: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -41,3 +84,15 @@ class ProfileExport(BaseModel):
     targets: list[str] | None = None
     constraints: list[str] | None = None
     skills: list[str] | None = None
+    # Career & Job
+    preferred_titles: list[str] | None = None
+    experience_level: str | None = None
+    industries: list[str] | None = None
+    locations: list[str] | None = None
+    work_arrangement: str | None = None
+    event_attendance: str | None = None
+    # Learning & Certification
+    target_certifications: list[str] | None = None
+    learning_budget: str | None = None
+    learning_format: str | None = None
+    time_commitment: str | None = None

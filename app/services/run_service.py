@@ -196,17 +196,46 @@ async def _start_run(run_id: str) -> bool:
     return True
 
 
-async def _load_profile(profile_id: str) -> tuple[list[str], list[str], list[str], str]:
-    """Load profile targets, skills, constraints, and CV summary from the DB."""
+async def _load_profile(profile_id: str) -> dict[str, Any]:
+    """Load all profile fields needed by the pipeline from the DB."""
     async with async_session_factory() as session:
         profile = await session.get(UserProfile, profile_id)
-        targets = _parse_profile_targets(profile)
-        skills = _parse_profile_skills(profile)
-        constraints = _parse_profile_constraints(profile)
         cv_summary = ""
         if profile and profile.cv_path:
             cv_summary = _read_cv_text(profile.cv_path)
-        return targets, skills, constraints, cv_summary
+        return {
+            "profile_targets": _parse_profile_targets(profile),
+            "profile_skills": _parse_profile_skills(profile),
+            "profile_constraints": _parse_profile_constraints(profile),
+            "cv_summary": cv_summary,
+            # Structured profile fields
+            "preferred_titles": _parse_json_list(profile, "preferred_titles"),
+            "experience_level": getattr(profile, "experience_level", "") or "",
+            "industries": _parse_json_list(profile, "industries"),
+            "locations": _parse_json_list(profile, "locations"),
+            "work_arrangement": getattr(profile, "work_arrangement", "") or "",
+            "event_attendance": getattr(profile, "event_attendance", "") or "",
+            "target_certifications": _parse_json_list(profile, "target_certifications"),
+            "learning_budget": getattr(profile, "learning_budget", "") or "",
+            "learning_format": getattr(profile, "learning_format", "") or "",
+            "time_commitment": getattr(profile, "time_commitment", "") or "",
+        }
+
+
+def _parse_json_list(profile: UserProfile | None, field: str) -> list[str]:
+    """Parse a JSON-encoded list field from the profile, returning [] if absent."""
+    if not profile:
+        return []
+    raw = getattr(profile, field, None)
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(str(raw))
+        if isinstance(parsed, list):
+            return parsed
+    except (ValueError, TypeError):
+        pass
+    return []
 
 
 def _read_cv_text(cv_path: str) -> str:
@@ -301,10 +330,10 @@ async def execute_run(run_id: str, profile_id: str, mode: str) -> None:
         if not await _start_run(run_id):
             return
 
-        profile_targets, profile_skills, profile_constraints, cv_summary = await _load_profile(profile_id)
+        profile_data = await _load_profile(profile_id)
         logger.info(
             "Run %s started (mode=%s, profile=%s, targets=%s, constraints=%s)",
-            run_id, mode, profile_id, profile_targets, profile_constraints,
+            run_id, mode, profile_id, profile_data["profile_targets"], profile_data["profile_constraints"],
         )
 
         await event_manager.publish(run_id, {
@@ -340,10 +369,7 @@ async def execute_run(run_id: str, profile_id: str, mode: str) -> None:
 
         initial_state = {
             "profile_id": profile_id,
-            "profile_targets": profile_targets,
-            "profile_skills": profile_skills,
-            "profile_constraints": profile_constraints,
-            "cv_summary": cv_summary,
+            **profile_data,
             "run_id": run_id,
             "errors": [],
             "safe_degradation": False,
@@ -438,10 +464,13 @@ async def create_run(
     missing: list[str] = []
     parsed_targets = _parse_profile_targets(profile)
     parsed_skills = _parse_profile_skills(profile)
+    parsed_titles = _parse_json_list(profile, "preferred_titles")
     if not parsed_targets:
         missing.append("targets")
     if not parsed_skills:
         missing.append("skills")
+    if not parsed_titles:
+        missing.append("preferred job titles")
     if not profile.cv_path:
         missing.append("a CV")
     if missing:

@@ -16,11 +16,24 @@ class DailyState(TypedDict, total=False):
     cv_summary: str
     run_id: str
 
+    # Structured profile fields (all optional)
+    preferred_titles: list[str]
+    experience_level: str
+    industries: list[str]
+    locations: list[str]
+    work_arrangement: str
+    event_attendance: str
+    target_certifications: list[str]
+    learning_budget: str
+    learning_format: str
+    time_commitment: str
+
     # GoalExtractor output
     search_prompts: dict[str, str]
 
     # WebScraper raw results
     raw_cert_results: list[dict[str, Any]]
+    raw_course_results: list[dict[str, Any]]
     raw_event_results: list[dict[str, Any]]
     raw_group_results: list[dict[str, Any]]
     raw_job_results: list[dict[str, Any]]
@@ -37,6 +50,7 @@ class DailyState(TypedDict, total=False):
     # WebScraper filtered URLs (audit context)
     filtered_job_urls: list[dict[str, Any]]
     filtered_cert_urls: list[dict[str, Any]]
+    filtered_course_urls: list[dict[str, Any]]
     filtered_event_urls: list[dict[str, Any]]
     filtered_group_urls: list[dict[str, Any]]
     filtered_trend_urls: list[dict[str, Any]]
@@ -66,11 +80,24 @@ class WeeklyState(TypedDict, total=False):
     cv_summary: str
     run_id: str
 
+    # Structured profile fields (all optional)
+    preferred_titles: list[str]
+    experience_level: str
+    industries: list[str]
+    locations: list[str]
+    work_arrangement: str
+    event_attendance: str
+    target_certifications: list[str]
+    learning_budget: str
+    learning_format: str
+    time_commitment: str
+
     # GoalExtractor output
     search_prompts: dict[str, str]
 
     # WebScraper raw results
     raw_cert_results: list[dict[str, Any]]
+    raw_course_results: list[dict[str, Any]]
     raw_event_results: list[dict[str, Any]]
     raw_group_results: list[dict[str, Any]]
     raw_job_results: list[dict[str, Any]]
@@ -87,6 +114,7 @@ class WeeklyState(TypedDict, total=False):
     # WebScraper filtered URLs (audit context)
     filtered_job_urls: list[dict[str, Any]]
     filtered_cert_urls: list[dict[str, Any]]
+    filtered_course_urls: list[dict[str, Any]]
     filtered_event_urls: list[dict[str, Any]]
     filtered_group_urls: list[dict[str, Any]]
     filtered_trend_urls: list[dict[str, Any]]
