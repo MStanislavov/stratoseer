@@ -282,6 +282,9 @@ def make_fan_out_node(
         for (category, _), ret in zip(categories, returns):
             result_key = f"raw_{category}_results"
             results[result_key] = ret.get(result_key, [])
+            filtered_key = f"filtered_{category}_urls"
+            if ret.get(filtered_key):
+                results[filtered_key] = ret[filtered_key]
             all_errors.extend(ret.get("errors", []))
 
         elapsed = time.monotonic() - t0
