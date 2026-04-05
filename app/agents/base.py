@@ -34,6 +34,30 @@ def _extract_first_json(text: str, schema: type) -> Any | None:
         return None
 
 
+def _get_raw_json_content(raw: Any) -> str:
+    """Extract the JSON string from an AIMessage regardless of structured output method.
+
+    Checks multiple locations because the JSON lives in different places
+    depending on the method used by with_structured_output:
+    - json_mode / json_schema: raw.content
+    - function_calling: raw.additional_kwargs.tool_calls[0].function.arguments
+    - legacy function_calling: raw.additional_kwargs.function_call.arguments
+    """
+    if not raw:
+        return ""
+    content = getattr(raw, "content", "") or ""
+    if content:
+        return content
+    additional = getattr(raw, "additional_kwargs", {}) or {}
+    tool_calls = additional.get("tool_calls") or []
+    if tool_calls:
+        args = (tool_calls[0].get("function") or {}).get("arguments", "")
+        if args:
+            return args
+    func_call = additional.get("function_call") or {}
+    return func_call.get("arguments", "")
+
+
 class LLMAgent:
     """Base class for agents that use ChatOpenAI with structured output."""
 
@@ -68,13 +92,44 @@ class LLMAgent:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content},
         ]
-        result = await structured_llm.ainvoke(messages)
+        # Try up to three structured output methods, from strictest to most lenient
+        methods = [
+            (None, "json_schema"),            # default (strictest)
+            ("function_calling", "function_calling"),
+            ("json_mode", "json_mode"),        # most lenient
+        ]
+        result = None
+        last_exc = None
+        for method_arg, method_label in methods:
+            try:
+                if method_arg is None:
+                    s_llm = structured_llm
+                else:
+                    s_llm = self._llm.with_structured_output(
+                        schema, include_raw=True, method=method_arg,
+                    )
+                result = await s_llm.ainvoke(messages)
+                last_exc = None
+                break
+            except Exception as exc:
+                last_exc = exc
+                logger.warning(
+                    "Structured output (%s) failed: %s. %s",
+                    method_label, exc,
+                    "Trying next method." if method_arg != "json_mode" else "All methods exhausted.",
+                )
+
+        if result is None:
+            if last_exc is not None:
+                raise last_exc
+            raise ValueError("Structured output returned None from all methods")
+
         raw = result.get("raw")
         parsed = result.get("parsed")
         parsing_error = result.get("parsing_error")
 
         if parsed is None and parsing_error is not None:
-            content = getattr(raw, "content", "") if raw else ""
+            content = _get_raw_json_content(raw)
             if content:
                 parsed = _extract_first_json(content.strip(), schema)
             if parsed is not None:

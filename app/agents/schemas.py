@@ -27,17 +27,23 @@ class WebScraperResult(BaseModel):
 
 
 class FilteredURL(BaseModel):
-    """A URL that was checked and discarded during web scraping."""
+    """A URL that was discarded as a duplicate or clearly irrelevant."""
 
-    url: str = Field(description="The URL that was checked and discarded")
-    reason: str = Field(description="Why the URL was discarded")
+    url: str = Field(description="A URL that was discarded as a duplicate or clearly irrelevant")
+    reason: str = Field(description="Why: 'duplicate URL' or 'unrelated to search topic'")
 
 
 class WebScraperOutput(BaseModel):
     """Structured output from the WebScraper agent containing a list of search results."""
 
-    results: list[WebScraperResult] = Field(default_factory=list)
-    filtered_urls: list[FilteredURL] = Field(default_factory=list)
+    results: list[WebScraperResult] = Field(
+        default_factory=list,
+        description="ALL relevant URLs found during searching. Include even if not verified as live.",
+    )
+    filtered_urls: list[FilteredURL] = Field(
+        default_factory=list,
+        description="Only exact duplicates or clearly irrelevant URLs. Do NOT filter based on liveness.",
+    )
 
 
 # -- DataFormatter sub-models --
