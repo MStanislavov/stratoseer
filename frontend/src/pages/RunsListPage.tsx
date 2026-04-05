@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Play, Ban, Trash2 } from "lucide-react"
-import { listRuns, createRun, cancelRun, deleteRun } from "@/api/runs"
+import { listRuns, createRun, cancelRun, deleteRun, bulkDeleteRuns } from "@/api/runs"
 import type { Run, RunCreate } from "@/api/types"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner"
@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table,
   TableBody,
@@ -46,6 +47,8 @@ export default function RunsListPage() {
   const [cancelTarget, setCancelTarget] = useState<Run | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Run | null>(null)
   const [filterMode, setFilterMode] = useState<string>("all")
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
 
   function load() {
     if (!profileId) return
@@ -79,6 +82,45 @@ export default function RunsListPage() {
     load()
   }
 
+  // Filtered runs visible in the table (excludes cover_letter)
+  const visibleRuns = runs.filter(
+    (r) => r.mode !== "cover_letter" && (filterMode === "all" || r.mode === filterMode),
+  )
+
+  // Only non-executing runs can be selected for bulk delete
+  const deletableIds = new Set(
+    visibleRuns.filter((r) => r.status !== "running" && r.status !== "pending").map((r) => r.id),
+  )
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    if (selected.size === deletableIds.size) {
+      setSelected(new Set())
+    } else {
+      setSelected(new Set(deletableIds))
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (!profileId || selected.size === 0) return
+    const result = await bulkDeleteRuns(profileId, [...selected])
+    const count = result.deleted.length
+    const skippedCount = result.skipped.length
+    if (count > 0) toast.success(`Deleted ${count} run${count > 1 ? "s" : ""}`)
+    if (skippedCount > 0) toast.warning(`Skipped ${skippedCount} run${skippedCount > 1 ? "s" : ""} (still executing or not found)`)
+    setSelected(new Set())
+    setBulkDeleteOpen(false)
+    load()
+  }
+
   if (loading) return <LoadingSpinner />
 
   return (
@@ -103,7 +145,7 @@ export default function RunsListPage() {
         </div>
       </Card>
 
-      {runs.filter((r) => r.mode !== "cover_letter").length === 0 ? (
+      {visibleRuns.length === 0 ? (
         <EmptyState
           icon={<Play className="h-10 w-10" />}
           title="No runs yet"
@@ -111,22 +153,41 @@ export default function RunsListPage() {
         />
       ) : (
         <>
-        <div className="mb-4 max-w-xs">
-          <Select value={filterMode} onValueChange={setFilterMode}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by mode..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All modes</SelectItem>
-              <SelectItem value="daily">Daily</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="mb-4 flex items-center gap-3">
+          <div className="max-w-xs">
+            <Select value={filterMode} onValueChange={(v) => { setFilterMode(v); setSelected(new Set()) }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by mode..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All modes</SelectItem>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {selected.size > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setBulkDeleteOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete {selected.size} run{selected.size > 1 ? "s" : ""}
+            </Button>
+          )}
         </div>
         <Card>
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={deletableIds.size > 0 && selected.size === deletableIds.size}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead>Run ID</TableHead>
                 <TableHead>Mode</TableHead>
                 <TableHead>Status</TableHead>
@@ -137,12 +198,21 @@ export default function RunsListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {runs.filter((r) => r.mode !== "cover_letter" && (filterMode === "all" || r.mode === filterMode)).map((r) => (
+              {visibleRuns.map((r) => (
                 <TableRow
                   key={r.id}
                   className="cursor-pointer"
                   onClick={() => navigate(`/profiles/${profileId}/runs/${r.id}`)}
                 >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    {deletableIds.has(r.id) && (
+                      <Checkbox
+                        checked={selected.has(r.id)}
+                        onCheckedChange={() => toggleSelect(r.id)}
+                        aria-label={`Select run ${r.id.slice(0, 8)}`}
+                      />
+                    )}
+                  </TableCell>
                   <TableCell className="font-mono text-xs">{r.id.slice(0, 8)}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{r.mode}</Badge>
@@ -225,6 +295,24 @@ export default function RunsListPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => deleteTarget && handleDelete(deleteTarget)}>
+              Delete all
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selected.size} run{selected.size > 1 ? "s" : ""} and all results?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the selected runs and all their
+              jobs, certifications, courses, events, groups, trends, and cover letters.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete}>
               Delete all
             </AlertDialogAction>
           </AlertDialogFooter>

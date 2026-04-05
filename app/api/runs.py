@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
 from app.db import get_db
-from app.schemas.run import RunCreate, RunRead
+from app.schemas.run import BulkDeleteRequest, BulkDeleteResponse, RunCreate, RunRead
 from app.services import run_service
 from app.sse import event_manager
 
@@ -103,6 +103,22 @@ async def cancel_run(
         raise HTTPException(status_code=404, detail=_RUN_NOT_FOUND)
     except ValueError:
         raise HTTPException(status_code=409, detail="Run is not currently executing")
+
+
+@router.post(
+    "/profiles/{profile_id}/runs/bulk-delete",
+    responses={
+        409: {"description": "Some runs are still executing (listed in skipped)"},
+    },
+)
+async def bulk_delete_runs(
+    profile_id: str,
+    body: BulkDeleteRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> BulkDeleteResponse:
+    """Delete multiple runs and all associated results at once."""
+    result = await run_service.bulk_delete_runs(db, profile_id, body.run_ids)
+    return BulkDeleteResponse(**result)
 
 
 @router.delete(

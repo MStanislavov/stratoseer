@@ -597,3 +597,24 @@ async def delete_run(db: AsyncSession, profile_id: str, run_id: str) -> bool:
 
     await asyncio.to_thread(_cleanup)
     return True
+
+
+async def bulk_delete_runs(
+    db: AsyncSession, profile_id: str, run_ids: list[str]
+) -> dict[str, list[str]]:
+    """Delete multiple runs and all their associated results.
+
+    Skips runs that are not found, don't belong to the profile, or are still
+    executing.  Returns a summary of deleted and skipped run IDs.
+    """
+    deleted: list[str] = []
+    skipped: list[str] = []
+
+    for rid in run_ids:
+        try:
+            await delete_run(db, profile_id, rid)
+            deleted.append(rid)
+        except (LookupError, ValueError):
+            skipped.append(rid)
+
+    return {"deleted": deleted, "skipped": skipped}

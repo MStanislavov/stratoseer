@@ -11,6 +11,19 @@ class RunCreate(BaseModel):
     options: dict | None = None
 
 
+class BulkDeleteRequest(BaseModel):
+    """Request body for bulk-deleting runs."""
+
+    run_ids: list[str]
+
+
+class BulkDeleteResponse(BaseModel):
+    """Result of a bulk delete operation."""
+
+    deleted: list[str]
+    skipped: list[str]
+
+
 class RunRead(BaseModel):
     """Read-only representation of a pipeline run returned by the API."""
 
