@@ -24,7 +24,10 @@ For each result, extract:
 
 ## URL Validation
 
-After collecting search results, use the `fetch_url` tool to visit each candidate URL. Confirm the page loads successfully and the course is still available. Drop any URL that returns a 404 or leads to a retired/unavailable course. **HTTP 403 is acceptable** -- many course platforms (Udemy, Coursera, etc.) block automated fetches with 403 anti-bot protection. Keep 403 URLs as valid results. For each URL you discard, include it in the `filtered_urls` array with a brief reason.
+After collecting search results, use the `fetch_url` tool to visit each candidate URL. For each URL you discard, include it in the `filtered_urls` array with a brief reason.
+
+- **Drop**: 404, retired/unavailable courses
+- **KEEP**: HTTP 403 responses. Udemy, Coursera, and other course platforms block automated fetches with 403 anti-bot protection. A 403 from a course platform is NOT an error -- the course is still valid. Do NOT filter or discard 403 URLs.
 
 ## Guidelines
 

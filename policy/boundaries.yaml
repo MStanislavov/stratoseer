@@ -1,6 +1,6 @@
 agents:
   goal_extractor:
-    inputs: [profile_targets, profile_skills]
+    inputs: [profile_targets]
     outputs: [search_prompts]
   web_scrapers:
     inputs: [search_prompt, search_category]

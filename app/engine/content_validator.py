@@ -176,13 +176,14 @@ def _check_content(url: str, category: str, raw: Any) -> URLValidationItem:
     # Parse HTTP status
     status, body = extract_http_body_and_status(text)
 
+    if status == 403:
+        return URLValidationItem(url=url, valid=True)
+
     if status == 404 or status == 400:
         return URLValidationItem(url=url, valid=False, reason=f"HTTP {status} - page unavailable - {url}")
 
     if status < 200 or status > 299:
-        # Groups often return 403 (login walls, private pages) but are still valid
-        if not (category in ("group", "cert") and status == 403):
-            return URLValidationItem(url=url, valid=False, reason=f"HTTP {status} - unknown error - {url}")
+        return URLValidationItem(url=url, valid=False, reason=f"HTTP {status} - unknown error - {url}")
 
     if len(body) < _MIN_BODY_CHARS and (category == "job" or category == "event"):
         return URLValidationItem(url=url, valid=False, reason=f"insufficient content - {url}")

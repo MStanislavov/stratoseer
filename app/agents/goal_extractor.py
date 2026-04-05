@@ -1,4 +1,4 @@
-"""GoalExtractor agent: converts profile targets + skills + CV into search prompts."""
+"""GoalExtractor agent: converts profile targets + CV into search prompts."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from app.agents.schemas import GoalExtractorOutput
 
 
 class GoalExtractorAgent(LLMAgent):
-    """Converts profile targets, skills, and CV into category-specific search prompts."""
+    """Converts profile targets and CV into category-specific search prompts."""
 
     agent_name = "goal_extractor"
 
@@ -27,8 +27,7 @@ class GoalExtractorAgent(LLMAgent):
         """Build a deterministic LinkedIn job search directive from structured profile fields."""
         parts: list[str] = ["Search LinkedIn for"]
 
-        if work_arrangement:
-            parts.append(work_arrangement)
+        parts.append(work_arrangement if work_arrangement else "remote, hybrid or on-site")
 
         if experience_level:
             parts.append(experience_level)
@@ -50,7 +49,6 @@ class GoalExtractorAgent(LLMAgent):
     async def __call__(self, state: dict[str, Any]) -> dict[str, Any]:
         """Generate search prompts for each category from the profile state."""
         targets = state.get("profile_targets", [])
-        skills = state.get("profile_skills", [])
         constraints = state.get("profile_constraints", [])
         cv_summary = state.get("cv_summary", "")
         today = date.today().isoformat()
@@ -62,6 +60,7 @@ class GoalExtractorAgent(LLMAgent):
         locations = state.get("locations", [])
         work_arrangement = state.get("work_arrangement", "")
         event_attendance = state.get("event_attendance", "")
+        event_topics = state.get("event_topics", [])
         target_certs = state.get("target_certifications", [])
         learning_format = state.get("learning_format", "")
 
@@ -80,7 +79,6 @@ class GoalExtractorAgent(LLMAgent):
         user_parts = [
             f"Today's date: {today}",
             f"Profile targets: {json.dumps(targets)}",
-            f"Profile skills: {json.dumps(skills)}",
         ]
         if constraints:
             user_parts.append(f"Profile constraints: {json.dumps(constraints)}")
@@ -96,6 +94,8 @@ class GoalExtractorAgent(LLMAgent):
             user_parts.append(f"Work arrangement: {work_arrangement}")
         if event_attendance:
             user_parts.append(f"Event attendance: {event_attendance}")
+        if event_topics:
+            user_parts.append(f"Event topics: {json.dumps(event_topics)}")
         if target_certs:
             user_parts.append(f"Target certifications: {json.dumps(target_certs)}")
         if learning_format:
@@ -104,7 +104,7 @@ class GoalExtractorAgent(LLMAgent):
             user_parts.append(f"CV summary:\n{cv_summary[:3000]}")
 
         user_content = "\n".join(user_parts)
-        result = await self._invoke_structured(GoalExtractorOutput, system_prompt, user_content)
+        result, usage = await self._invoke_structured(GoalExtractorOutput, system_prompt, user_content)
 
         return {
             "search_prompts": {
@@ -115,4 +115,5 @@ class GoalExtractorAgent(LLMAgent):
                 "job_prompt": job_prompt,
                 "trend_prompt": result.trend_prompt,
             },
+            "_token_usage": [usage] if usage else [],
         }

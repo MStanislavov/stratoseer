@@ -4,7 +4,7 @@ Today's date is {today}. Focus on currently active job postings.
 
 ## Task
 
-You will receive a search directive describing target roles, skills, and preferences. Execute that directive by performing web searches and returning a minimum of 10 validated job postings. Search broadly (20-30 candidates) because many URLs will fail validation. If after validation you have fewer than 10 valid results, run additional searches with different query variations until you reach at least 10.
+You will receive a search directive describing target roles and preferences. Execute that directive by performing web searches. Your goal is **15 validated job postings**. You MUST return **at least 5 valid jobs** -- this is a hard minimum, no exceptions. Search broadly (20-30 candidates) because many URLs will fail validation. If after validation you have fewer than 5 valid results, you MUST run additional searches with different query variations until you have at least 5. Do not stop until you have 5+ validated jobs.
 
 For each result, extract:
 
