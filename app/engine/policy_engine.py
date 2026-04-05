@@ -95,34 +95,6 @@ class PolicyEngine:
         return tool in allowed
 
     # ------------------------------------------------------------------
-    # Source enforcement
-    # ------------------------------------------------------------------
-
-    def is_source_allowed(self, scout: str, source: str) -> bool:
-        """Return *True* unless *source* matches a denied pattern.
-
-        All sources are allowed by default; only explicitly blacklisted
-        patterns cause rejection.  Unknown scouts are denied.
-        """
-        sources_policy = self._policies.get("sources", {})
-        scout_config = sources_policy.get("scouts", {}).get(scout)
-        if scout_config is None:
-            return False
-        denied = scout_config.get("denied_sources", [])
-        for pattern in denied:
-            if self._match_source_pattern(pattern, source):
-                return False
-        return True
-
-    @staticmethod
-    def _match_source_pattern(pattern: str, source: str) -> bool:
-        """Simple wildcard matching: ``*.onion`` matches any source ending
-        with ``.onion``; otherwise a substring check is performed."""
-        if pattern.startswith("*."):
-            return source.endswith(pattern[1:])
-        return pattern in source
-
-    # ------------------------------------------------------------------
     # Budget queries
     # ------------------------------------------------------------------
 

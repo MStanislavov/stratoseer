@@ -34,21 +34,13 @@ def policy_dir(tmp_path: Path) -> Path:
             },
         }
     }
-    sources = {
-        "scouts": {
-            "web_scraper": {
-                "allowed_sources": ["duckduckgo.com"],
-                "denied_sources": ["*.onion"],
-            },
-        }
-    }
     budgets = {
         "agents": {
             "goal_extractor": {"max_steps": 3, "max_input_tokens": 4000, "max_output_tokens": 2000, "type": "llm"},
             "web_scraper": {"max_steps": 5, "max_input_tokens": 100000, "max_output_tokens": 16000, "type": "llm"},
             "audit_writer": {"max_steps": 5, "type": "deterministic"},
         },
-        "global": {"max_run_duration_seconds": 300, "max_output_items": 50},
+        "global": {"max_output_items": 50},
     }
     boundaries = {
         "agents": {
@@ -79,7 +71,6 @@ def policy_dir(tmp_path: Path) -> Path:
 
     for name, data in [
         ("tools", tools),
-        ("sources", sources),
         ("budgets", budgets),
         ("boundaries", boundaries),
         ("redaction", redaction),
@@ -102,7 +93,7 @@ def engine(policy_dir: Path) -> PolicyEngine:
 class TestLoading:
     def test_list_policies(self, engine: PolicyEngine) -> None:
         names = engine.list_policies()
-        assert set(names) == {"tools", "sources", "budgets", "boundaries", "redaction"}
+        assert set(names) == {"tools", "budgets", "boundaries", "redaction"}
 
     def test_get_policy_returns_dict(self, engine: PolicyEngine) -> None:
         tools = engine.get_policy("tools")
@@ -160,25 +151,6 @@ class TestToolAllowlist:
 
     def test_data_formatter_allowed_llm(self, engine: PolicyEngine) -> None:
         assert engine.is_tool_allowed("data_formatter", "llm_structured_output") is True
-
-
-# ------------------------------------------------------------------
-# Source enforcement
-# ------------------------------------------------------------------
-
-
-class TestSourceDenylist:
-    def test_allowed_source(self, engine: PolicyEngine) -> None:
-        assert engine.is_source_allowed("web_scraper", "https://duckduckgo.com/search") is True
-
-    def test_denied_wildcard_source(self, engine: PolicyEngine) -> None:
-        assert engine.is_source_allowed("web_scraper", "http://something.onion") is False
-
-    def test_unlisted_source_allowed_by_default(self, engine: PolicyEngine) -> None:
-        assert engine.is_source_allowed("web_scraper", "https://randomsite.xyz") is True
-
-    def test_unknown_scout_returns_false(self, engine: PolicyEngine) -> None:
-        assert engine.is_source_allowed("nonexistent_scout", "duckduckgo.com") is False
 
 
 # ------------------------------------------------------------------
@@ -282,5 +254,4 @@ class TestRedaction:
 class TestGlobalConfig:
     def test_get_global_config(self, engine: PolicyEngine) -> None:
         cfg = engine.get_global_config()
-        assert cfg["max_run_duration_seconds"] == 300
         assert cfg["max_output_items"] == 50
