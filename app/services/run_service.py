@@ -536,6 +536,10 @@ async def cancel_run(
 ) -> dict:
     """Cancel a running task.
 
+    If the in-memory task is still alive, request async cancellation.
+    If the task is gone (e.g. server restarted) but the DB status is still
+    running/pending, mark it as cancelled directly -- this recovers orphaned runs.
+
     Raises LookupError if run not found, ValueError if not running.
     """
     run = await db.get(Run, run_id)
@@ -543,11 +547,18 @@ async def cancel_run(
         raise LookupError("Run not found")
 
     task = _running_tasks.get(run_id)
-    if task is None or task.done():
-        raise ValueError("Run is not currently executing")
+    if task is not None and not task.done():
+        task.cancel()
+        return {"detail": "Cancellation requested", "run_id": run_id}
 
-    task.cancel()
-    return {"detail": "Cancellation requested", "run_id": run_id}
+    # Task not in memory -- orphaned after restart or lost
+    if run.status in ("running", "pending"):
+        run.status = "cancelled"
+        run.finished_at = datetime.now(timezone.utc)
+        await db.commit()
+        return {"detail": "Orphaned run marked as cancelled", "run_id": run_id}
+
+    raise ValueError("Run is not currently executing")
 
 
 async def delete_run(db: AsyncSession, profile_id: str, run_id: str) -> bool:
@@ -619,3 +630,21 @@ async def bulk_delete_runs(
             skipped.append(rid)
 
     return {"deleted": deleted, "skipped": skipped}
+
+
+async def recover_orphaned_runs() -> int:
+    """Mark any running/pending runs as failed on startup.
+
+    Returns the number of runs recovered.
+    """
+    async with async_session_factory() as db:
+        result = await db.execute(
+            update(Run)
+            .where(Run.status.in_(["running", "pending"]))
+            .values(status="failed", finished_at=datetime.now(timezone.utc))
+        )
+        await db.commit()
+        count = result.rowcount  # type: ignore[union-attr]
+        if count:
+            log.info("Recovered %d orphaned run(s) from previous session", count)
+        return count

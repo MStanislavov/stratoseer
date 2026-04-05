@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api import profiles, runs, audit, results, cover_letters, policies
 from app.config import settings as _settings
 from app.db import engine, Base
+from app.services.run_service import recover_orphaned_runs
 
 # Import all models so Base.metadata knows about them
 from app import models  # noqa: F401
@@ -39,6 +40,7 @@ async def lifespan(_app: FastAPI):
     # Create tables on startup
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await recover_orphaned_runs()
     yield
 
 
