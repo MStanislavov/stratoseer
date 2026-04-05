@@ -101,6 +101,12 @@ class CoverLetterAgent(LLMAgent):
             {"role": "user", "content": user_content},
         ]
         response = await self._llm.ainvoke(messages)
+        usage = dict(response.usage_metadata) if getattr(response, "usage_metadata", None) else None
+        if usage is not None:
+            usage["model_name"] = getattr(self._llm, "model_name", None) or getattr(self._llm, "model", "")
         content = response.content.replace("\u2014", ",").replace("\u2013", ",")
-        return {"cover_letter_content": content}
+        return {
+            "cover_letter_content": content,
+            "_token_usage": [usage] if usage else [],
+        }
 

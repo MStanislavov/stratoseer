@@ -1,31 +1,40 @@
 agents:
   goal_extractor:
     max_steps: 3
-    max_tokens: 4000
+    max_input_tokens: 4000
+    max_output_tokens: 2000
+    type: llm
   web_scrapers:
     max_steps: 5
-    max_tokens: 4000
+    max_input_tokens: 100000
+    max_output_tokens: 16000
+    type: llm
   content_validator:
     max_steps: 5
-    max_tokens: 4000
+    type: deterministic
   data_formatter:
     max_steps: 3
-    max_tokens: 8000
+    max_input_tokens: 10000
+    max_output_tokens: 8000
+    type: llm
   ceo:
     max_steps: 3
-    max_tokens: 6000
+    max_input_tokens: 8000
+    max_output_tokens: 4000
+    type: llm
   cfo:
     max_steps: 3
-    max_tokens: 6000
-  cv_summarizer:
-    max_steps: 3
-    max_tokens: 6000
+    max_input_tokens: 8000
+    max_output_tokens: 4000
+    type: llm
   cover_letter_agent:
     max_steps: 5
-    max_tokens: 8000
+    max_input_tokens: 8000
+    max_output_tokens: 4000
+    type: llm
   audit_writer:
     max_steps: 5
-    max_tokens: 2000
+    type: deterministic
 global:
   max_run_duration_seconds: 300
   max_output_items: 50

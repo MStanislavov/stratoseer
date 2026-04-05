@@ -11,6 +11,7 @@ from app.agents.factory import AgentFactory
 from app.engine.audit_writer import AuditEvent, AuditWriter
 from app.engine.content_validator import ContentValidator
 from app.engine.policy_engine import PolicyEngine
+from app.engine.token_tracker import RunTokenTracker
 from app.engine.verifier import Verifier
 from app.graphs.log import _publish_sse, make_fan_out_node, make_node, node_end, node_start, route, warn
 from app.graphs.state import DailyState
@@ -195,6 +196,7 @@ def build_daily_graph(
     audit_writer: AuditWriter | None = None,
     verifier: Verifier | None = None,
     event_manager: Any | None = None,
+    token_tracker: RunTokenTracker | None = None,
 ) -> StateGraph:
     """Construct the daily pipeline StateGraph."""
     goal_extractor = agent_factory.create_goal_extractor()
@@ -207,11 +209,13 @@ def build_daily_graph(
     graph.add_node("goal_extractor", make_node(
         _P, "goal_extractor", goal_extractor, "llm_structured_output",
         policy_engine, audit_writer, verifier, event_manager,
+        token_tracker=token_tracker,
     ))
     graph.add_node("web_scrapers", make_fan_out_node(
         _P, "web_scrapers", web_scraper, "web_search",
         _SCRAPER_CATEGORIES,
         policy_engine, audit_writer, verifier, event_manager,
+        token_tracker=token_tracker,
     ))
     graph.add_node("content_validator", make_node(
         _P, "content_validator", content_validator, "web_fetch",
@@ -221,6 +225,7 @@ def build_daily_graph(
     graph.add_node("data_formatter", make_node(
         _P, "data_formatter", data_formatter, "llm_structured_output",
         policy_engine, audit_writer, verifier, event_manager,
+        token_tracker=token_tracker,
     ))
     graph.add_node("audit_writer", _make_audit_node(audit_writer, policy_engine, verifier, event_manager))
     graph.add_node("safe_degrade", _safe_degrade_node)

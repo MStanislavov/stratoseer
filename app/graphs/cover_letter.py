@@ -10,6 +10,7 @@ from langgraph.graph import END, StateGraph
 from app.agents.factory import AgentFactory
 from app.engine.audit_writer import AuditEvent, AuditWriter
 from app.engine.policy_engine import PolicyEngine
+from app.engine.token_tracker import RunTokenTracker
 from app.engine.verifier import Verifier
 from app.graphs.log import _publish_sse, make_node, node_end, node_start
 from app.graphs.state import CoverLetterState
@@ -140,6 +141,7 @@ def build_cover_letter_graph(
     audit_writer: AuditWriter | None = None,
     verifier: Verifier | None = None,
     event_manager: Any | None = None,
+    token_tracker: RunTokenTracker | None = None,
 ) -> StateGraph:
     """Construct the cover letter pipeline StateGraph.
 
@@ -152,6 +154,7 @@ def build_cover_letter_graph(
     graph.add_node("cover_letter_agent", make_node(
         _P, "cover_letter_agent", cover_letter_agent, "llm_generate_text",
         policy_engine, audit_writer, verifier, event_manager,
+        token_tracker=token_tracker,
     ))
     graph.add_node("audit_writer", _make_audit_node(audit_writer, policy_engine, verifier, event_manager))
 

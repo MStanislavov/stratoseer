@@ -26,8 +26,9 @@ class CEOAgent(LLMAgent):
             f"Groups: {json.dumps(state.get('formatted_groups', []))}\n"
             f"Trends: {json.dumps(state.get('formatted_trends', []))}"
         )
-        result = await self._invoke_structured(CEOOutput, system_prompt, user_content)
+        result, usage = await self._invoke_structured(CEOOutput, system_prompt, user_content)
         return {
             "strategic_recommendations": [r.model_dump() for r in result.strategic_recommendations],
             "ceo_summary": result.ceo_summary,
+            "_token_usage": [usage] if usage else [],
         }

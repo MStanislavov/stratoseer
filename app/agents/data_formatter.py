@@ -46,7 +46,7 @@ class DataFormatterAgent(LLMAgent):
             f"Raw group results:\n{json.dumps(raw_groups, indent=2)}\n\n"
             f"Raw trend results:\n{json.dumps(raw_trends, indent=2)}"
         )
-        result = await self._invoke_structured(DataFormatterOutput, system_prompt, user_content)
+        result, usage = await self._invoke_structured(DataFormatterOutput, system_prompt, user_content)
         return {
             "formatted_jobs": _dedup(result.jobs),
             "formatted_certifications": _dedup(result.certifications),
@@ -54,5 +54,6 @@ class DataFormatterAgent(LLMAgent):
             "formatted_events": _dedup(result.events),
             "formatted_groups": _dedup(result.groups),
             "formatted_trends": _dedup(result.trends),
+            "_token_usage": [usage] if usage else [],
         }
 

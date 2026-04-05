@@ -26,8 +26,9 @@ class CFOAgent(LLMAgent):
             f"Groups: {json.dumps(state.get('formatted_groups', []))}\n"
             f"Trends: {json.dumps(state.get('formatted_trends', []))}"
         )
-        result = await self._invoke_structured(CFOOutput, system_prompt, user_content)
+        result, usage = await self._invoke_structured(CFOOutput, system_prompt, user_content)
         return {
             "risk_assessments": [r.model_dump() for r in result.risk_assessments],
             "cfo_summary": result.cfo_summary,
+            "_token_usage": [usage] if usage else [],
         }

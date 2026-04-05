@@ -44,15 +44,16 @@ def policy_dir(tmp_path: Path) -> Path:
     }
     budgets = {
         "agents": {
-            "goal_extractor": {"max_steps": 3, "max_tokens": 4000},
-            "web_scraper": {"max_steps": 5, "max_tokens": 4000},
+            "goal_extractor": {"max_steps": 3, "max_input_tokens": 4000, "max_output_tokens": 2000, "type": "llm"},
+            "web_scraper": {"max_steps": 5, "max_input_tokens": 100000, "max_output_tokens": 16000, "type": "llm"},
+            "content_validator": {"max_steps": 5, "type": "deterministic"},
         },
         "global": {"max_run_duration_seconds": 300, "max_output_items": 50},
     }
     boundaries = {
         "agents": {
             "goal_extractor": {
-                "inputs": ["profile_targets", "profile_skills"],
+                "inputs": ["profile_targets"],
                 "outputs": ["search_prompts"],
             },
             "data_formatter": {
@@ -190,12 +191,23 @@ class TestBudgets:
         budget = engine.get_budget("goal_extractor")
         assert isinstance(budget, Budget)
         assert budget.max_steps == 3
-        assert budget.max_tokens == 4000
+        assert budget.max_input_tokens == 4000
+        assert budget.max_output_tokens == 2000
+        assert budget.agent_type == "llm"
 
     def test_get_budget_web_scraper(self, engine: PolicyEngine) -> None:
         budget = engine.get_budget("web_scraper")
         assert budget.max_steps == 5
-        assert budget.max_tokens == 4000
+        assert budget.max_input_tokens == 100000
+        assert budget.max_output_tokens == 16000
+        assert budget.agent_type == "llm"
+
+    def test_get_budget_deterministic_agent(self, engine: PolicyEngine) -> None:
+        budget = engine.get_budget("content_validator")
+        assert budget.max_steps == 5
+        assert budget.max_input_tokens is None
+        assert budget.max_output_tokens is None
+        assert budget.agent_type == "deterministic"
 
     def test_get_budget_unknown_raises(self, engine: PolicyEngine) -> None:
         with pytest.raises(KeyError, match="No budget"):
@@ -210,7 +222,7 @@ class TestBudgets:
 class TestBoundaries:
     def test_get_boundaries_known_agent(self, engine: PolicyEngine) -> None:
         b = engine.get_boundaries("goal_extractor")
-        assert b["inputs"] == ["profile_targets", "profile_skills"]
+        assert b["inputs"] == ["profile_targets"]
         assert b["outputs"] == ["search_prompts"]
 
     def test_get_boundaries_data_formatter(self, engine: PolicyEngine) -> None:

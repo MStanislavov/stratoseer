@@ -115,6 +115,23 @@ async def get_executive_insights(
     }
 
 
+async def get_token_usage(
+    db: AsyncSession, profile_id: str, run_id: str
+) -> dict:
+    """Return per-agent token usage for a run.
+
+    Reads the audit log and extracts the token_usage_summary event.
+    Raises LookupError if run not found or no usage data recorded.
+    """
+    await _get_run_or_raise(db, run_id, profile_id)
+    writer = AuditWriter(artifacts_dir=settings.artifacts_dir)
+    events = await writer.read_log(run_id)
+    for event in reversed(events):
+        if event.get("event_type") == "token_usage_summary":
+            return event.get("data", {})
+    raise LookupError("No token usage data found for this run")
+
+
 async def diff_runs(
     db: AsyncSession, profile_id: str, run_id: str, other_run_id: str
 ) -> dict:

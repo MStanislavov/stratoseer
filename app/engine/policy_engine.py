@@ -16,7 +16,9 @@ class Budget:
     """Step and token budget for a single agent."""
 
     max_steps: int
-    max_tokens: int
+    max_input_tokens: int | None = None
+    max_output_tokens: int | None = None
+    agent_type: str = "llm"
 
 
 @dataclass
@@ -130,7 +132,9 @@ class PolicyEngine:
             raise KeyError(f"No budget for agent '{agent}'")
         return Budget(
             max_steps=agent_config["max_steps"],
-            max_tokens=agent_config["max_tokens"],
+            max_input_tokens=agent_config.get("max_input_tokens"),
+            max_output_tokens=agent_config.get("max_output_tokens"),
+            agent_type=agent_config.get("type", "llm"),
         )
 
     # ------------------------------------------------------------------

@@ -58,36 +58,53 @@ class AgentFactory:
         # Cache of ChatOpenAI instances keyed by model name
         self._llm_cache: dict[str, Any] = {}
 
-    def _get_llm(self, model_override: str) -> Any:
+    def _get_budget_output_tokens(self, agent_name: str) -> int | None:
+        """Look up the max_output_tokens budget for an agent, or None if unavailable."""
+        if self._policy_engine is None:
+            return None
+        try:
+            budget = self._policy_engine.get_budget(agent_name)
+            return budget.max_output_tokens
+        except KeyError:
+            return None
+
+    def _get_llm(self, model_override: str, max_tokens: int | None = None) -> Any:
         """Return an LLM instance for the given model, or the default LLM.
 
         If model_override is set and differs from the base LLM's model,
         create a new Agent LLM with that model (cached).
+        When max_tokens is provided, it caps the LLM's output token count.
         """
-        if not model_override:
+        if not model_override and max_tokens is None:
             return self._llm
 
         # Check if the override matches the base LLM already
         base_model = getattr(self._llm, "model_name", None) or getattr(self._llm, "model", "")
-        if model_override == base_model:
+        if model_override == base_model and max_tokens is None:
             return self._llm
 
-        if model_override not in self._llm_cache:
-            # Create a new LLM with the same settings but a different model
+        cache_key = (model_override or base_model, max_tokens)
+        if cache_key not in self._llm_cache:
             from langchain_openai import ChatOpenAI
 
-            self._llm_cache[model_override] = ChatOpenAI(
-                model=model_override,
-                temperature=self._llm.temperature,
-                api_key=self._llm.openai_api_key,
-            )
-        return self._llm_cache[model_override]
+            kwargs: dict[str, Any] = {
+                "model": model_override or base_model,
+                "temperature": self._llm.temperature,
+                "api_key": self._llm.openai_api_key,
+            }
+            if max_tokens is not None:
+                kwargs["max_tokens"] = max_tokens
+            self._llm_cache[cache_key] = ChatOpenAI(**kwargs)
+        return self._llm_cache[cache_key]
 
     def create_goal_extractor(self) -> AgentProtocol:
         """Return the singleton GoalExtractorAgent, creating it on first call."""
         if self._goal_extractor is None:
             self._goal_extractor = GoalExtractorAgent(
-                llm=self._get_llm(self._agent_models.goal_extractor),
+                llm=self._get_llm(
+                    self._agent_models.goal_extractor,
+                    max_tokens=self._get_budget_output_tokens("goal_extractor"),
+                ),
                 prompt_loader=self._prompt_loader,
             )
         return self._goal_extractor
@@ -97,11 +114,21 @@ class AgentFactory:
         if self._web_scraper is None:
             from app.llm.url_fetch_tool import URLFetchTool
 
+            budget = None
+            if self._policy_engine:
+                try:
+                    budget = self._policy_engine.get_budget("web_scrapers")
+                except KeyError:
+                    pass
             self._web_scraper = WebScraperAgent(
-                llm=self._get_llm(self._agent_models.web_scraper),
+                llm=self._get_llm(
+                    self._agent_models.web_scraper,
+                    max_tokens=budget.max_output_tokens if budget else None,
+                ),
                 prompt_loader=self._prompt_loader,
                 search_tool=self._search_tool,
                 fetch_tool=URLFetchTool(),
+                max_steps=budget.max_steps if budget else 5,
             )
         return self._web_scraper
 
@@ -109,7 +136,10 @@ class AgentFactory:
         """Return the singleton DataFormatterAgent, creating it on first call."""
         if self._data_formatter is None:
             self._data_formatter = DataFormatterAgent(
-                llm=self._get_llm(self._agent_models.data_formatter),
+                llm=self._get_llm(
+                    self._agent_models.data_formatter,
+                    max_tokens=self._get_budget_output_tokens("data_formatter"),
+                ),
                 prompt_loader=self._prompt_loader,
             )
         return self._data_formatter
@@ -118,7 +148,10 @@ class AgentFactory:
         """Return the singleton CEOAgent, creating it on first call."""
         if self._ceo is None:
             self._ceo = CEOAgent(
-                llm=self._get_llm(self._agent_models.ceo),
+                llm=self._get_llm(
+                    self._agent_models.ceo,
+                    max_tokens=self._get_budget_output_tokens("ceo"),
+                ),
                 prompt_loader=self._prompt_loader,
             )
         return self._ceo
@@ -127,7 +160,10 @@ class AgentFactory:
         """Return the singleton CFOAgent, creating it on first call."""
         if self._cfo is None:
             self._cfo = CFOAgent(
-                llm=self._get_llm(self._agent_models.cfo),
+                llm=self._get_llm(
+                    self._agent_models.cfo,
+                    max_tokens=self._get_budget_output_tokens("cfo"),
+                ),
                 prompt_loader=self._prompt_loader,
             )
         return self._cfo
@@ -136,7 +172,10 @@ class AgentFactory:
         """Return the singleton CoverLetterAgent, creating it on first call."""
         if self._cover_letter is None:
             self._cover_letter = CoverLetterAgent(
-                llm=self._get_llm(self._agent_models.cover_letter),
+                llm=self._get_llm(
+                    self._agent_models.cover_letter,
+                    max_tokens=self._get_budget_output_tokens("cover_letter_agent"),
+                ),
                 prompt_loader=self._prompt_loader,
             )
         return self._cover_letter

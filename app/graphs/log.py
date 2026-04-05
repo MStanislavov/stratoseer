@@ -17,6 +17,7 @@ from typing import Any, Callable, Generator
 from app.agents.base import AgentProtocol
 from app.engine.audit_writer import AuditEvent, AuditWriter
 from app.engine.policy_engine import PolicyEngine
+from app.engine.token_tracker import RunTokenTracker
 from app.engine.verifier import Verifier
 
 logger = logging.getLogger("app.graphs.pipeline")
@@ -127,6 +128,7 @@ def make_node(
     verifier: Verifier | None = None,
     event_manager: Any | None = None,
     node_type: str = "agent",
+    token_tracker: RunTokenTracker | None = None,
 ) -> Callable[..., Any]:
     """Create a graph node that runs a single agent with full lifecycle:
 
@@ -175,6 +177,16 @@ def make_node(
         t0 = time.monotonic()
         result = await call_agent(agent, state)
         elapsed = time.monotonic() - t0
+
+        # Extract and record token usage
+        for usage in result.pop("_token_usage", []):
+            if token_tracker and usage:
+                await token_tracker.record(
+                    agent_name,
+                    usage.get("model_name", ""),
+                    usage.get("input_tokens", 0),
+                    usage.get("output_tokens", 0),
+                )
 
         node_end(pipeline, state, agent_name, elapsed)
 
@@ -253,6 +265,7 @@ def make_fan_out_node(
     verifier: Verifier | None = None,
     event_manager: Any | None = None,
     scraper_overrides: dict[str, AgentProtocol] | None = None,
+    token_tracker: RunTokenTracker | None = None,
 ) -> Callable[..., Any]:
     """Create a fan-out node that runs scrapers concurrently, then verifies the merged output.
 
@@ -302,6 +315,15 @@ def make_fan_out_node(
         all_errors: list[str] = []
         results: dict[str, Any] = {}
         for (category, _), ret in zip(categories, returns):
+            # Extract and record token usage from each scraper
+            for usage in ret.pop("_token_usage", []):
+                if token_tracker and usage:
+                    await token_tracker.record(
+                        f"{agent_name}/{category}",
+                        usage.get("model_name", ""),
+                        usage.get("input_tokens", 0),
+                        usage.get("output_tokens", 0),
+                    )
             result_key = f"raw_{category}_results"
             results[result_key] = ret.get(result_key, [])
             filtered_key = f"filtered_{category}_urls"

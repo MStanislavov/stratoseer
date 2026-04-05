@@ -20,6 +20,7 @@ from app.config import settings
 from app.db import async_session_factory
 from app.engine.audit_writer import AuditEvent, AuditWriter
 from app.engine.policy_engine import PolicyEngine
+from app.engine.token_tracker import RunTokenTracker
 from app.graphs.cover_letter import build_cover_letter_graph
 from app.graphs.daily import build_daily_graph
 from app.graphs.weekly import build_weekly_graph
@@ -92,10 +93,12 @@ def get_agent_factory() -> Any:
     except ImportError:
         logger.warning("duckduckgo-search not installed, web scraper search tool unavailable")
 
+    policy_engine = PolicyEngine(settings.policy_dir)
     _agent_factory = AgentFactory(
         llm=llm,
         prompt_loader=prompt_loader,
         search_tool=search_tool,
+        policy_engine=policy_engine,
         agent_models=agent_models,
     )
     return _agent_factory
@@ -156,6 +159,7 @@ def _build_graph(
     agent_factory: Any,
     verifier: Any = None,
     run_event_manager: Any = None,
+    token_tracker: RunTokenTracker | None = None,
 ) -> Any:
     """Build the appropriate LangGraph StateGraph for the given run mode."""
     builders = {
@@ -169,6 +173,7 @@ def _build_graph(
         agent_factory=agent_factory,
         verifier=verifier,
         event_manager=run_event_manager,
+        token_tracker=token_tracker,
     )
 
 
@@ -201,8 +206,8 @@ async def _load_profile(profile_id: str) -> dict[str, Any]:
     async with async_session_factory() as session:
         profile = await session.get(UserProfile, profile_id)
         cv_summary = ""
-        if profile and profile.cv_path:
-            cv_summary = _read_cv_text(profile.cv_path)
+        if profile and profile.cv_data:
+            cv_summary = _read_cv_bytes(profile.cv_data)
         return {
             "profile_targets": _parse_profile_targets(profile),
             "profile_skills": _parse_profile_skills(profile),
@@ -215,6 +220,7 @@ async def _load_profile(profile_id: str) -> dict[str, Any]:
             "locations": _parse_json_list(profile, "locations"),
             "work_arrangement": getattr(profile, "work_arrangement", "") or "",
             "event_attendance": getattr(profile, "event_attendance", "") or "",
+            "event_topics": _parse_json_list(profile, "event_topics"),
             "target_certifications": _parse_json_list(profile, "target_certifications"),
             "learning_format": getattr(profile, "learning_format", "") or "",
         }
@@ -236,21 +242,14 @@ def _parse_json_list(profile: UserProfile | None, field: str) -> list[str]:
     return []
 
 
-def _read_cv_text(cv_path: str) -> str:
-    """Read CV content from file. Returns empty string on failure."""
-    from pathlib import Path
-
-    path = Path(cv_path)
-    if not path.exists():
-        return ""
+def _read_cv_bytes(cv_data: bytes) -> str:
+    """Extract text from CV bytes (PDF). Returns empty string on failure."""
     try:
-        if path.suffix.lower() == ".pdf":
-            from app.services.profile_service import extract_text_from_pdf
+        from app.services.profile_service import extract_text_from_pdf
 
-            return extract_text_from_pdf(cv_path)
-        return path.read_text("utf-8")
+        return extract_text_from_pdf(cv_data)
     except Exception:
-        logger.warning("Failed to read CV at %s", cv_path)
+        logger.warning("Failed to extract text from CV bytes")
         return ""
 
 
@@ -363,10 +362,13 @@ async def execute_run(run_id: str, profile_id: str, mode: str) -> None:
         from app.engine.verifier import Verifier
         verifier = Verifier(policy_engine=policy_engine)
 
+        token_tracker = RunTokenTracker(run_id)
+
         agent_factory = get_agent_factory()
         graph = _build_graph(
             mode, policy_engine, audit_writer, agent_factory,
             verifier=verifier, run_event_manager=event_manager,
+            token_tracker=token_tracker,
         )
         compiled = graph.compile()
 
@@ -381,6 +383,17 @@ async def execute_run(run_id: str, profile_id: str, mode: str) -> None:
         t0 = time.monotonic()
         result = await compiled.ainvoke(initial_state)
         elapsed = time.monotonic() - t0
+
+        # Write token usage summary to audit trail
+        await audit_writer.append(
+            run_id,
+            AuditEvent(
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                event_type="token_usage_summary",
+                agent="pipeline",
+                data=token_tracker.to_dict(),
+            ),
+        )
 
         # Persist results to DB
         await persist_results(run_id, profile_id, result)
@@ -474,7 +487,7 @@ async def create_run(
         missing.append("skills")
     if not parsed_titles:
         missing.append("preferred job titles")
-    if not profile.cv_path:
+    if not profile.cv_data:
         missing.append("a CV")
     if missing:
         raise ValueError(f"Profile is incomplete: please add {', '.join(missing)}")
