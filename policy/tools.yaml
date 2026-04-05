@@ -5,9 +5,6 @@ agents:
   web_scrapers:
     allowed_tools: [web_search, web_fetch, llm_structured_output]
     denied_tools: []
-  content_validator:
-    allowed_tools: [web_fetch]
-    denied_tools: [web_search]
   data_formatter:
     allowed_tools: [llm_structured_output]
     denied_tools: [web_search, web_fetch]

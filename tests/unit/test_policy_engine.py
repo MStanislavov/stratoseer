@@ -46,7 +46,7 @@ def policy_dir(tmp_path: Path) -> Path:
         "agents": {
             "goal_extractor": {"max_steps": 3, "max_input_tokens": 4000, "max_output_tokens": 2000, "type": "llm"},
             "web_scraper": {"max_steps": 5, "max_input_tokens": 100000, "max_output_tokens": 16000, "type": "llm"},
-            "content_validator": {"max_steps": 5, "type": "deterministic"},
+            "audit_writer": {"max_steps": 5, "type": "deterministic"},
         },
         "global": {"max_run_duration_seconds": 300, "max_output_items": 50},
     }
@@ -203,7 +203,7 @@ class TestBudgets:
         assert budget.agent_type == "llm"
 
     def test_get_budget_deterministic_agent(self, engine: PolicyEngine) -> None:
-        budget = engine.get_budget("content_validator")
+        budget = engine.get_budget("audit_writer")
         assert budget.max_steps == 5
         assert budget.max_input_tokens is None
         assert budget.max_output_tokens is None

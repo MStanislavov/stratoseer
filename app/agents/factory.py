@@ -120,6 +120,23 @@ class AgentFactory:
                     budget = self._policy_engine.get_budget("web_scrapers")
                 except KeyError:
                     pass
+
+            # Per-category budget overrides (e.g. web_scraper_job)
+            category_max_steps: dict[str, int] = {}
+            category_min_searches: dict[str, int] = {}
+            category_min_results: dict[str, int] = {}
+            if self._policy_engine:
+                for cat in ("job", "cert", "course", "event", "group", "trend"):
+                    try:
+                        cat_budget = self._policy_engine.get_budget(f"web_scraper_{cat}")
+                        category_max_steps[cat] = cat_budget.max_steps
+                        if cat_budget.min_searches:
+                            category_min_searches[cat] = cat_budget.min_searches
+                        if cat_budget.min_results:
+                            category_min_results[cat] = cat_budget.min_results
+                    except KeyError:
+                        pass
+
             self._web_scraper = WebScraperAgent(
                 llm=self._get_llm(
                     self._agent_models.web_scraper,
@@ -129,6 +146,9 @@ class AgentFactory:
                 search_tool=self._search_tool,
                 fetch_tool=URLFetchTool(),
                 max_steps=budget.max_steps if budget else 5,
+                category_max_steps=category_max_steps or None,
+                category_min_searches=category_min_searches or None,
+                category_min_results=category_min_results or None,
             )
         return self._web_scraper
 

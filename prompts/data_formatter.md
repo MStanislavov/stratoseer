@@ -74,7 +74,7 @@ Given raw search results from job, certification, course, event, group, and tren
 
 Each raw result includes a `source` field identifying where it was found. Use this to populate subtitle fields when no more specific information is available in the title or snippet.
 
-- **jobs.company**: Extract from patterns like "at CompanyName" in the title/snippet. If no company name is identifiable, use the `source` field (e.g., "LinkedIn", "Indeed").
+- **jobs.company**: Extract from patterns like "at CompanyName" in the title/snippet. If no company name is identifiable, use the `source` field (e.g., "LinkedIn").
 - **certifications.provider**: The organization offering the certification (e.g., "Amazon" for AWS certs, "Google" for GCP certs). Use `source` if it identifies the provider.
 - **courses.platform**: The learning platform (e.g., "Udemy", "Coursera"). Use `source` if applicable.
 - **events.organizer**: The organization hosting the event. Use `source` if it identifies the organizer.

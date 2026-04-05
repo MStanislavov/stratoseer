@@ -21,11 +21,7 @@ _BROWSER_HEADERS = {
 
 
 class URLFetchTool(BaseTool):
-    """Fetches a URL and returns the page text content.
-
-    The LLM calls this tool with a URL to inspect the actual page content
-    and determine if the resource (job, event, cert, etc.) is still valid.
-    """
+    """Fetches a URL and returns the page text content."""
 
     name: str = "fetch_url"
     description: str = (

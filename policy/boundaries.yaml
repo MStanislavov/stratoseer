@@ -5,9 +5,6 @@ agents:
   web_scrapers:
     inputs: [search_prompt, search_category]
     outputs: [raw_job_results, raw_cert_results, raw_event_results, raw_group_results, raw_trend_results]
-  content_validator:
-    inputs: [raw_job_results, raw_cert_results, raw_event_results, raw_group_results, raw_trend_results]
-    outputs: [raw_job_results, raw_cert_results, raw_event_results, raw_group_results, raw_trend_results]
   data_formatter:
     inputs: [raw_job_results, raw_cert_results, raw_event_results, raw_group_results, raw_trend_results]
     outputs: [formatted_jobs, formatted_certifications, formatted_courses, formatted_events, formatted_groups, formatted_trends]

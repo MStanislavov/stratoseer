@@ -9,9 +9,20 @@ agents:
     max_input_tokens: 100000
     max_output_tokens: 16000
     type: llm
-  content_validator:
-    max_steps: 5
-    type: deterministic
+  web_scraper_job:
+    max_steps: 15
+    min_searches: 10
+    min_results: 8
+    max_input_tokens: 200000
+    max_output_tokens: 100000
+    type: llm
+  web_scraper_event:
+    max_steps: 10
+    min_searches: 6
+    min_results: 1
+    max_input_tokens: 200000
+    max_output_tokens: 100000
+    type: llm
   data_formatter:
     max_steps: 3
     max_input_tokens: 10000

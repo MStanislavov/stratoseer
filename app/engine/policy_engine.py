@@ -18,6 +18,8 @@ class Budget:
     max_steps: int
     max_input_tokens: int | None = None
     max_output_tokens: int | None = None
+    min_searches: int = 0
+    min_results: int = 0
     agent_type: str = "llm"
 
 
@@ -134,6 +136,8 @@ class PolicyEngine:
             max_steps=agent_config["max_steps"],
             max_input_tokens=agent_config.get("max_input_tokens"),
             max_output_tokens=agent_config.get("max_output_tokens"),
+            min_searches=agent_config.get("min_searches", 0),
+            min_results=agent_config.get("min_results", 0),
             agent_type=agent_config.get("type", "llm"),
         )
 
