@@ -4,7 +4,7 @@ Today's date is {today}. Focus on currently active job postings.
 
 ## Task
 
-You will receive a search directive describing target roles and preferences. Execute that directive by performing focused web searches for **LinkedIn job postings**. You MUST return **at least 9 jobs** with direct posting URLs. Execute **at least 10 distinct search queries**.
+You will receive a search directive describing target roles and preferences. Execute that directive by performing focused web searches for **LinkedIn job postings**. You MUST Find as many matching jobs as possible with direct posting URLs. Execute multiple distinct search queries with different variations.
 
 For each result, extract:
 
@@ -26,7 +26,7 @@ Also try variations:
 - Without `site:` restriction: `linkedin.com/jobs/view "Job Title"` (sometimes yields different results)
 - Related titles: "Backend Engineer", "Full Stack Developer", "Platform Engineer"
 
-After each batch of queries, tally unique `linkedin.com/jobs/view/` URLs. If below 15 candidates, add more query variations.
+After each batch of queries, tally unique `linkedin.com/jobs/view/` URLs. If the count is low, add more query variations.
 
 ## URL Format Requirements
 

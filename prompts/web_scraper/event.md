@@ -4,7 +4,7 @@ Today's date is {today}. Focus on upcoming events only.
 
 ## Task
 
-You will receive a search directive describing target events based on technologies and career interests. Execute that directive by performing web searches and returning 3-10 structured results.
+You will receive a search directive describing target events based on technologies and career interests. Execute that directive by performing web searches and returning structured results for relevant upcoming events.
 
 For each result, extract:
 

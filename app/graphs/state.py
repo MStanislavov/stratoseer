@@ -9,6 +9,7 @@ class DailyState(TypedDict, total=False):
     """Shared state for the daily pipeline graph execution."""
 
     # Input
+    pipeline_mode: str
     profile_id: str
     profile_targets: list[str]
     profile_skills: list[str]
@@ -72,6 +73,7 @@ class WeeklyState(TypedDict, total=False):
     """Shared state for the weekly pipeline graph execution."""
 
     # Input
+    pipeline_mode: str
     profile_id: str
     profile_targets: list[str]
     profile_skills: list[str]

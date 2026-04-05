@@ -137,17 +137,22 @@ class WebScraperAgent(LLMAgent):
         search_tool: Any | None = None,
         fetch_tool: Any | None = None,
         max_steps: int = 5,
-        category_max_steps: dict[str, int] | None = None,
-        category_min_searches: dict[str, int] | None = None,
-        category_min_results: dict[str, int] | None = None,
+        mode_category_budgets: dict[str, dict[str, int]] | None = None,
     ):
         super().__init__(llm=llm, prompt_loader=prompt_loader)
         self._search_tool = search_tool
         self._fetch_tool = fetch_tool
         self._max_steps = max_steps
-        self._category_max_steps = category_max_steps or {}
-        self._category_min_searches = category_min_searches or {}
-        self._category_min_results = category_min_results or {}
+        self._mode_category_budgets = mode_category_budgets or {}
+
+    def _resolve_budgets(self, mode: str, category: str) -> tuple[int, int, int]:
+        """Return (max_steps, min_searches, min_results) for a mode+category."""
+        budgets = self._mode_category_budgets.get(f"{mode}:{category}", {})
+        return (
+            budgets.get("max_steps", self._max_steps),
+            budgets.get("min_searches", 0),
+            budgets.get("min_results", 0),
+        )
 
     # ------------------------------------------------------------------
     # Helper: process one batch of tool calls from an LLM response
@@ -387,7 +392,15 @@ class WebScraperAgent(LLMAgent):
                 if self._prompt_loader
                 else "You are a helpful web search agent."
             )
+            mode = state.get("pipeline_mode", "weekly")
+            max_steps, min_searches, min_results = self._resolve_budgets(mode, category)
+
             user_content = prompt
+
+            if min_results:
+                user_content += f"\n\nYou must find at least {min_results} results."
+            if min_searches:
+                user_content += f" Execute at least {min_searches} distinct search queries."
 
             search_context = ""
             usages: list[dict] = []
@@ -399,10 +412,6 @@ class WebScraperAgent(LLMAgent):
             if self._fetch_tool is not None:
                 tools.append(self._fetch_tool)
                 tool_map[self._fetch_tool.name] = self._fetch_tool
-
-            max_steps = self._category_max_steps.get(category, self._max_steps)
-            min_searches = self._category_min_searches.get(category, 0)
-            min_results = self._category_min_results.get(category, 0)
 
             messages: list[Any] = []
             llm_with_tools = None

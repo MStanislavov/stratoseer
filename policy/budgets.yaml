@@ -9,14 +9,28 @@ agents:
     max_input_tokens: 100000
     max_output_tokens: 16000
     type: llm
-  web_scraper_job:
+  web_scraper_job_daily:
+    max_steps: 15
+    min_searches: 10
+    min_results: 4
+    max_input_tokens: 200000
+    max_output_tokens: 100000
+    type: llm
+  web_scraper_job_weekly:
     max_steps: 15
     min_searches: 10
     min_results: 8
     max_input_tokens: 200000
     max_output_tokens: 100000
     type: llm
-  web_scraper_event:
+  web_scraper_event_daily:
+    max_steps: 5
+    min_searches: 5
+    min_results: 1
+    max_input_tokens: 200000
+    max_output_tokens: 100000
+    type: llm
+  web_scraper_event_weekly:
     max_steps: 10
     min_searches: 6
     min_results: 1
@@ -47,5 +61,4 @@ agents:
     max_steps: 5
     type: deterministic
 global:
-  max_run_duration_seconds: 300
   max_output_items: 50

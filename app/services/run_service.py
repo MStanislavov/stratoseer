@@ -373,6 +373,7 @@ async def execute_run(run_id: str, profile_id: str, mode: str) -> None:
         compiled = graph.compile()
 
         initial_state = {
+            "pipeline_mode": mode,
             "profile_id": profile_id,
             **profile_data,
             "run_id": run_id,

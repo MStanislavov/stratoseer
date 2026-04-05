@@ -121,21 +121,25 @@ class AgentFactory:
                 except KeyError:
                     pass
 
-            # Per-category budget overrides (e.g. web_scraper_job)
-            category_max_steps: dict[str, int] = {}
-            category_min_searches: dict[str, int] = {}
-            category_min_results: dict[str, int] = {}
+            # Per-mode + per-category budget overrides
+            # Keys: "{mode}:{category}" e.g. "daily:job", "weekly:event"
+            # Falls back to web_scraper_{cat} if no mode-specific budget exists
+            mode_category_budgets: dict[str, dict[str, int]] = {}
             if self._policy_engine:
-                for cat in ("job", "cert", "course", "event", "group", "trend"):
-                    try:
-                        cat_budget = self._policy_engine.get_budget(f"web_scraper_{cat}")
-                        category_max_steps[cat] = cat_budget.max_steps
-                        if cat_budget.min_searches:
-                            category_min_searches[cat] = cat_budget.min_searches
-                        if cat_budget.min_results:
-                            category_min_results[cat] = cat_budget.min_results
-                    except KeyError:
-                        pass
+                cats = ("job", "cert", "course", "event", "group", "trend")
+                for mode in ("daily", "weekly"):
+                    for cat in cats:
+                        for budget_name in (f"web_scraper_{cat}_{mode}", f"web_scraper_{cat}"):
+                            try:
+                                cb = self._policy_engine.get_budget(budget_name)
+                                mode_category_budgets[f"{mode}:{cat}"] = {
+                                    "max_steps": cb.max_steps,
+                                    "min_searches": cb.min_searches,
+                                    "min_results": cb.min_results,
+                                }
+                                break
+                            except KeyError:
+                                continue
 
             self._web_scraper = WebScraperAgent(
                 llm=self._get_llm(
@@ -146,9 +150,7 @@ class AgentFactory:
                 search_tool=self._search_tool,
                 fetch_tool=URLFetchTool(),
                 max_steps=budget.max_steps if budget else 5,
-                category_max_steps=category_max_steps or None,
-                category_min_searches=category_min_searches or None,
-                category_min_results=category_min_results or None,
+                mode_category_budgets=mode_category_budgets or None,
             )
         return self._web_scraper
 
