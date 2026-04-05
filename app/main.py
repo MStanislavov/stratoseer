@@ -1,4 +1,5 @@
 import logging
+import os
 import uvicorn
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -13,6 +14,14 @@ from app.db import engine, Base
 
 # Import all models so Base.metadata knows about them
 from app import models  # noqa: F401
+
+# LangSmith tracing
+if _settings.langsmith_tracing and _settings.langsmith_api_key:
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_API_KEY"] = _settings.langsmith_api_key
+    os.environ["LANGCHAIN_PROJECT"] = _settings.langsmith_project
+else:
+    os.environ.pop("LANGCHAIN_TRACING_V2", None)
 
 # Configure logging from settings
 _log_level = getattr(logging, _settings.log_level.upper(), logging.INFO)

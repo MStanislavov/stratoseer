@@ -44,12 +44,17 @@ class Settings(BaseSettings):
     llm_temperature: float = 0.3
 
     # Per-agent model overrides (blank = use llm_model default)
-    goal_extractor_model: str = "gpt-5.4"
-    web_scraper_model: str = "gpt-5.4"
+    goal_extractor_model: str = _DEFAULT_AGENT_MODEL
+    web_scraper_model: str = _DEFAULT_AGENT_MODEL
     data_formatter_model: str = _DEFAULT_AGENT_MODEL
     ceo_model: str = _DEFAULT_AGENT_MODEL
     cfo_model: str = _DEFAULT_AGENT_MODEL
     cover_letter_model: str = _DEFAULT_AGENT_MODEL
+
+    # LangSmith tracing (dev only -- disable in production to avoid costs)
+    langsmith_tracing: bool = False
+    langsmith_api_key: str = ""
+    langsmith_project: str = "ai-executive-assistant"
 
     # Search
     search_max_results: int = 10

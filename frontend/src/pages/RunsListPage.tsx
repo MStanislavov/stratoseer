@@ -42,7 +42,7 @@ export default function RunsListPage() {
   const navigate = useNavigate()
   const [runs, setRuns] = useState<Run[]>([])
   const [loading, setLoading] = useState(true)
-  const [mode, setMode] = useState<RunCreate["mode"]>("daily")
+  const [mode, setMode] = useState<RunCreate["mode"]>("weekly")
   const [cancelTarget, setCancelTarget] = useState<Run | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Run | null>(null)
   const [filterMode, setFilterMode] = useState<string>("all")
