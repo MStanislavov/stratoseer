@@ -21,10 +21,10 @@ You MUST write a proper cover letter with:
 
 The cover letter must be 250-400 words, spanning three to four paragraphs. Every paragraph should draw on concrete details from the CV Summary to substantiate claims.
 
-1. **Technical hook**: Open with a specific, compelling connection between your strongest relevant achievement and the role. Reference a concrete project, metric, or technical accomplishment from the CV Summary. Never open with "I am writing to apply for..."
+1. **Company awareness + technical hook**: Open by showing genuine awareness of what the company does -- reference their product, mission, or a notable technical achievement you found in the JD. Then bridge into your strongest relevant accomplishment from the CV Summary. Never open with "I am writing to apply for..."
 2. **Stack alignment**: Map your technical skills directly to the JD requirements. Use precise technology names from the JD. Reference specific projects, roles, or quantified outcomes from the CV Summary that demonstrate hands-on use of the required stack.
-3. **Culture fit and growth** (optional, include when relevant): Connect your work style, methodology experience (Agile, DevOps, etc.), and career trajectory to the company's mission or team structure. Ground this in actual experience from the CV Summary.
-4. **Call to action**: Close confidently with a specific next step. Reference what excites you about the role's technical challenges.
+3. **Company alignment**: Express genuine interest in the company's mission, product, or technical challenges as described in the JD. Connect your work style, methodology experience (Agile, DevOps, etc.), and career trajectory to what the company is building. Ground this in actual experience from the CV Summary.
+4. **Call to action**: Close confidently with a specific next step. Reference what excites you about the role's technical challenges or the company's direction.
 
 ## IT-Specific Guidelines
 
@@ -54,3 +54,4 @@ The cover letter must be 250-400 words, spanning three to four paragraphs. Every
 - If the CV lacks a required skill, do not mention it. Focus on what aligns.
 - Total length MUST be 250-400 words. Aim for 300+ words to give adequate depth.
 - Every claim about the candidate must trace back to the CV Summary.
+- Every reference to the company (product, mission, values) must trace back to the Job Description or Opportunity Details. Never fabricate company information.
