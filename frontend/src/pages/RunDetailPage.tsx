@@ -16,20 +16,70 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 
 const AGENTS_BY_MODE: Record<string, string[]> = {
-  daily: ["goal_extractor", "web_scrapers", "content_validator", "data_formatter", "audit_writer"],
-  weekly: ["goal_extractor", "web_scrapers", "content_validator", "data_formatter", "ceo", "cfo", "audit_writer"],
+  daily: ["goal_extractor", "web_scrapers", "data_formatter", "audit_writer"],
+  weekly: ["goal_extractor", "web_scrapers", "data_formatter", "ceo", "cfo", "audit_writer"],
   cover_letter: ["cover_letter_agent", "audit_writer"],
 }
 
 const AGENT_DISPLAY_NAMES: Record<string, string> = {
   goal_extractor: "Goal Extractor",
   web_scrapers: "Web Scraper",
-  content_validator: "Content Validator",
   data_formatter: "Data Formatter",
   audit_writer: "Audit Writer",
   ceo: "CEO",
   cfo: "CFO",
   cover_letter_agent: "Cover Letter",
+}
+
+const AGENT_FUN_MESSAGES: Record<string, string[]> = {
+  goal_extractor: [
+    "Your goals are loading... patience, grasshopper",
+    "Translating 'I want a better job' into strategy...",
+    "Reading between the lines of your aspirations...",
+    "Mapping your career constellation...",
+  ],
+  web_scrapers: [
+    "The robots are collecting data...",
+    "Unleashing the minions across the internet...",
+    "Our digital scouts just put on their hiking boots...",
+    "Raiding job boards like it's Black Friday...",
+    "Shaking the internet upside down for opportunities...",
+    "Teaching robots to read job postings... they learn fast",
+    "Crawling the web so you don't have to...",
+    "Scouring every corner of the internet (legally)...",
+    "The bots are caffeinated and ready to go...",
+  ],
+  data_formatter: [
+    "Sorting through the treasure trove...",
+    "Turning chaos into something pretty...",
+    "Spreadsheet wizardry in progress...",
+    "Putting the puzzle pieces together...",
+    "Almost there... just fluffing the pillows on your results...",
+  ],
+  audit_writer: [
+    "Documenting everything for posterity...",
+    "Writing it all down so no one can deny it...",
+    "The auditor has entered the chat...",
+    "Logging receipts... because we keep receipts...",
+  ],
+  ceo: [
+    "Your chief advisor is pacing the virtual boardroom...",
+    "Thinking several chess moves ahead...",
+    "The corner office lights are on late tonight...",
+    "Strategic genius loading... 60%... 80%...",
+  ],
+  cfo: [
+    "The CFO is crunching numbers at alarming speed...",
+    "ROI calculations go brrr...",
+    "Stress-testing your career portfolio...",
+  ],
+  cover_letter_agent: [
+    "Choosing words more carefully than a poet...",
+    "Making you sound amazing (because you are)...",
+    "Writing prose that would make Shakespeare jealous...",
+    "Weaving your experience into a compelling story...",
+    "Dear Hiring Manager, prepare to be impressed...",
+  ],
 }
 
 type AgentStatus = "idle" | "running" | "complete" | "partial" | "failed"
@@ -248,6 +298,55 @@ export default function RunDetailPage() {
   )
 }
 
+function shuffled<T>(arr: T[]): T[] {
+  const copy = [...arr]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
+
+function AgentFunMessage({ agent, status }: { agent: string; status: AgentStatus }) {
+  const [queue, setQueue] = useState<string[]>([])
+  const [index, setIndex] = useState(0)
+  const [visible, setVisible] = useState(true)
+
+  useEffect(() => {
+    if (status !== "running") return
+    const msgs = AGENT_FUN_MESSAGES[agent]
+    if (!msgs) return
+    setQueue(shuffled(msgs))
+    setIndex(0)
+    setVisible(true)
+  }, [agent, status])
+
+  useEffect(() => {
+    if (status !== "running" || queue.length <= 1) return
+    const interval = setInterval(() => {
+      setVisible(false)
+      setTimeout(() => {
+        setIndex((prev) => (prev + 1) % queue.length)
+        setVisible(true)
+      }, 300)
+    }, agent === "web_scrapers" ? 8000 : 3000)
+    return () => clearInterval(interval)
+  }, [agent, status, queue])
+
+  if (status !== "running" || queue.length === 0) return null
+
+  return (
+    <div className="mb-1 text-xs text-indigo-600 dark:text-indigo-400 font-medium text-center max-w-28">
+      <span
+        className="transition-opacity duration-300 inline-block"
+        style={{ opacity: visible ? 1 : 0 }}
+      >
+        {queue[index]}
+      </span>
+    </div>
+  )
+}
+
 function PipelineStepper({ agents, statuses }: { agents: string[]; statuses: Record<string, AgentStatus> }) {
   const stepCircle = (s: AgentStatus) => {
     switch (s) {
@@ -288,6 +387,7 @@ function PipelineStepper({ agents, statuses }: { agents: string[]; statuses: Rec
       {agents.map((name, i) => (
         <div key={name} className="flex items-start" style={{ minWidth: 0 }}>
           <div className="flex flex-col items-center" style={{ minWidth: "5rem" }}>
+            <AgentFunMessage agent={name} status={statuses[name]} />
             {stepCircle(statuses[name])}
             <span className="mt-2 text-xs text-muted-foreground text-center leading-tight">
               {AGENT_DISPLAY_NAMES[name] ?? name.replace(/_/g, " ")}
