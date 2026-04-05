@@ -25,9 +25,8 @@ class GoalExtractorAgent(LLMAgent):
         constraints: list[str] | None = None,
     ) -> str:
         """Build a deterministic LinkedIn job search directive from structured profile fields."""
-        parts: list[str] = ["Search LinkedIn for"]
-
-        parts.append(work_arrangement if work_arrangement else "remote, hybrid or on-site")
+        parts: list[str] = ["Search LinkedIn for",
+                            work_arrangement if work_arrangement else ""]
 
         if experience_level:
             parts.append(experience_level)
