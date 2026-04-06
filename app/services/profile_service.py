@@ -1,6 +1,7 @@
 """Profile business logic: CRUD, CV upload, skill extraction."""
 
 import asyncio
+import hashlib
 import io
 import json
 import logging
@@ -14,6 +15,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.db import async_session_factory
 from app.models.certification import Certification
 from app.models.course import Course
 from app.models.cover_letter import CoverLetter
@@ -26,6 +28,9 @@ from app.models.trend import Trend
 from app.schemas.profile import ProfileCreate, ProfileRead, ProfileUpdate
 
 logger = logging.getLogger(__name__)
+
+# Prevent background tasks from being garbage-collected
+_background_tasks: set[asyncio.Task] = set()
 
 
 class ExtractedSkills(BaseModel):
@@ -57,6 +62,7 @@ def profile_to_read(profile: UserProfile) -> ProfileRead:
         constraints=_deserialize_list(profile.constraints),
         skills=_deserialize_list(profile.skills),
         cv_filename=profile.cv_filename,
+        has_cv_summary=bool(profile.cv_summary),
         preferred_titles=_deserialize_list(profile.preferred_titles),
         experience_level=profile.experience_level,
         industries=_deserialize_list(profile.industries),
@@ -71,10 +77,13 @@ def profile_to_read(profile: UserProfile) -> ProfileRead:
     )
 
 
-async def create_profile(db: AsyncSession, body: ProfileCreate) -> ProfileRead:
+async def create_profile(
+    db: AsyncSession, body: ProfileCreate, owner_id: str | None = None
+) -> ProfileRead:
     """Create a new profile and return its read representation."""
     profile = UserProfile(
         name=body.name,
+        owner_id=owner_id or "",
         targets=_serialize_list(body.targets),
         constraints=_serialize_list(body.constraints),
         skills=_serialize_list(body.skills),
@@ -94,9 +103,14 @@ async def create_profile(db: AsyncSession, body: ProfileCreate) -> ProfileRead:
     return profile_to_read(profile)
 
 
-async def list_profiles(db: AsyncSession) -> list[ProfileRead]:
-    """List all profiles ordered by creation date."""
-    result = await db.execute(select(UserProfile).order_by(UserProfile.created_at))
+async def list_profiles(
+    db: AsyncSession, owner_id: str | None = None
+) -> list[ProfileRead]:
+    """List profiles ordered by creation date. If owner_id given, filter by owner."""
+    query = select(UserProfile).order_by(UserProfile.created_at)
+    if owner_id is not None:
+        query = query.where(UserProfile.owner_id == owner_id)
+    result = await db.execute(query)
     profiles = result.scalars().all()
     return [profile_to_read(p) for p in profiles]
 
@@ -174,9 +188,29 @@ async def upload_cv(
 
     profile.cv_data = content
     profile.cv_filename = filename
+    profile.cv_summary = None
+    profile.cv_summary_hash = None
     await db.commit()
     await db.refresh(profile)
+
+    task = asyncio.create_task(_background_summarize(profile_id))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
     return profile_to_read(profile)
+
+
+async def _background_summarize(profile_id: str) -> None:
+    """Eagerly regenerate the CV summary after upload."""
+    try:
+        async with async_session_factory() as session:
+            profile = await session.get(UserProfile, profile_id)
+            if profile and profile.cv_data:
+                await ensure_cv_summary(session, profile)
+    except Exception:
+        logger.warning(
+            "Background CV summarization failed for profile %s", profile_id, exc_info=True
+        )
 
 
 def extract_text_from_pdf(source: str | bytes) -> str:
@@ -191,6 +225,39 @@ def extract_text_from_pdf(source: str | bytes) -> str:
         if text:
             text_parts.append(text)
     return "\n".join(text_parts)
+
+
+async def ensure_cv_summary(db: AsyncSession, profile: UserProfile) -> str:
+    """Return cached CV summary, generating via LLM if missing or stale."""
+    if profile.cv_data is None:
+        return ""
+
+    cv_hash = await asyncio.to_thread(
+        lambda: hashlib.sha256(profile.cv_data).hexdigest()
+    )
+
+    if profile.cv_summary is not None and profile.cv_summary_hash == cv_hash:
+        return profile.cv_summary
+
+    raw_text = await asyncio.to_thread(extract_text_from_pdf, profile.cv_data)
+    if not raw_text.strip():
+        return ""
+
+    try:
+        from app.services.cover_letter_service import summarize_cv
+
+        summary = await summarize_cv(raw_text)
+    except Exception:
+        logger.warning(
+            "LLM summarization failed for profile %s, using raw text", profile.id
+        )
+        summary = raw_text
+
+    profile.cv_summary = summary
+    profile.cv_summary_hash = cv_hash
+    await db.commit()
+    await db.refresh(profile)
+    return summary
 
 
 async def export_profile(db: AsyncSession, profile_id: str) -> dict | None:
@@ -215,7 +282,9 @@ async def export_profile(db: AsyncSession, profile_id: str) -> dict | None:
     }
 
 
-async def import_profile(db: AsyncSession, data: dict) -> ProfileRead:
+async def import_profile(
+    db: AsyncSession, data: dict, owner_id: str | None = None
+) -> ProfileRead:
     """Import a profile from exported data. Creates a new profile."""
     from app.schemas.profile import ProfileCreate
     body = ProfileCreate(
@@ -233,7 +302,7 @@ async def import_profile(db: AsyncSession, data: dict) -> ProfileRead:
         target_certifications=data.get("target_certifications"),
         learning_format=data.get("learning_format"),
     )
-    return await create_profile(db, body)
+    return await create_profile(db, body, owner_id=owner_id)
 
 
 async def extract_skills_with_ai(cv_text: str) -> list[str]:

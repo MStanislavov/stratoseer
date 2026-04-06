@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.error_messages import profile_not_found
+from app.auth.dependencies import CurrentUser, VerifiedProfile
 from app.db import get_db
 from app.schemas.profile import ProfileCreate, ProfileRead, ProfileUpdate
 from app.services import profile_service
@@ -17,18 +18,21 @@ router = APIRouter(tags=["profiles"])
 @router.post("/profiles", status_code=201)
 async def create_profile(
     body: ProfileCreate,
+    user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ProfileRead:
     """Create a new profile."""
-    return await profile_service.create_profile(db, body)
+    return await profile_service.create_profile(db, body, owner_id=user.id)
 
 
 @router.get("/profiles")
 async def list_profiles(
+    user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> list[ProfileRead]:
-    """List all profiles."""
-    return await profile_service.list_profiles(db)
+    """List profiles owned by the current user (admin sees all)."""
+    owner_id = None if user.role == "admin" else user.id
+    return await profile_service.list_profiles(db, owner_id=owner_id)
 
 
 @router.get(
@@ -36,6 +40,7 @@ async def list_profiles(
     responses={404: {"description": profile_not_found}},
 )
 async def get_profile(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ProfileRead:
@@ -51,6 +56,7 @@ async def get_profile(
     responses={404: {"description": profile_not_found}},
 )
 async def update_profile(
+    _profile: VerifiedProfile,
     profile_id: str,
     body: ProfileUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -68,6 +74,7 @@ async def update_profile(
     responses={404: {"description": profile_not_found}},
 )
 async def delete_profile(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> None:
@@ -82,6 +89,7 @@ async def delete_profile(
     responses={404: {"description": profile_not_found}},
 )
 async def export_profile(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
@@ -95,10 +103,11 @@ async def export_profile(
 @router.post("/profiles/import", status_code=201)
 async def import_profile(
     body: dict,
+    user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ProfileRead:
     """Import a profile from previously exported data."""
-    return await profile_service.import_profile(db, body)
+    return await profile_service.import_profile(db, body, owner_id=user.id)
 
 
 @router.post(
@@ -106,6 +115,7 @@ async def import_profile(
     responses={404: {"description": profile_not_found}},
 )
 async def upload_cv(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     file: UploadFile = File(...),
@@ -131,6 +141,7 @@ async def upload_cv(
     },
 )
 async def extract_skills_from_cv(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ExtractedSkills:

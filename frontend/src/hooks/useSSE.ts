@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import type { SSEEvent } from "@/api/types"
+import { getAccessToken } from "@/api/client"
 
 const TERMINAL_TYPES = new Set(["run_finished", "run_failed", "run_cancelled"])
 
@@ -12,7 +13,8 @@ export function useSSE(profileId: string | undefined, runId: string | undefined)
   useEffect(() => {
     if (!profileId || !runId) return
 
-    const url = `/api/profiles/${profileId}/runs/${runId}/stream`
+    const token = getAccessToken()
+    const url = `/api/profiles/${profileId}/runs/${runId}/stream${token ? `?token=${encodeURIComponent(token)}` : ""}`
     const es = new EventSource(url)
     esRef.current = es
 

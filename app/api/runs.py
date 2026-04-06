@@ -8,7 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
+from app.auth.dependencies import CurrentUser, VerifiedProfile, get_current_user_from_query
 from app.db import get_db
+from app.models.user import User
 from app.schemas.run import BulkDeleteRequest, BulkDeleteResponse, RunCreate, RunRead
 from app.services import run_service
 from app.sse import event_manager
@@ -20,11 +22,13 @@ router = APIRouter(tags=["runs"])
 
 @router.get("/runs")
 async def list_all_runs(
+    user: CurrentUser,
     db: Annotated[AsyncSession, Depends(get_db)],
     limit: int = 10,
 ) -> list[RunRead]:
-    """List recent runs across all profiles."""
-    return await run_service.list_all_runs(db, limit)
+    """List recent runs across all profiles (filtered by ownership)."""
+    owner_id = None if user.role == "admin" else user.id
+    return await run_service.list_all_runs(db, limit, owner_id=owner_id)
 
 
 @router.post(
@@ -36,6 +40,7 @@ async def list_all_runs(
     },
 )
 async def create_run(
+    _profile: VerifiedProfile,
     profile_id: str,
     body: RunCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -51,6 +56,7 @@ async def create_run(
 
 @router.get("/profiles/{profile_id}/runs")
 async def list_runs(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> list[RunRead]:
@@ -63,6 +69,7 @@ async def list_runs(
     responses={404: {"description": "Run not found"}},
 )
 async def get_run(
+    _profile: VerifiedProfile,
     profile_id: str,
     run_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -78,8 +85,9 @@ async def get_run(
 async def stream_run(
     profile_id: str,
     run_id: str,
+    _user: Annotated[User, Depends(get_current_user_from_query)],
 ):
-    """SSE stream of run progress events."""
+    """SSE stream of run progress events. Pass token via ?token= query param."""
     _ = profile_id
     return EventSourceResponse(event_manager.event_stream(run_id), ping=15)
 
@@ -92,6 +100,7 @@ async def stream_run(
     },
 )
 async def cancel_run(
+    _profile: VerifiedProfile,
     profile_id: str,
     run_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -112,6 +121,7 @@ async def cancel_run(
     },
 )
 async def bulk_delete_runs(
+    _profile: VerifiedProfile,
     profile_id: str,
     body: BulkDeleteRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -129,6 +139,7 @@ async def bulk_delete_runs(
     },
 )
 async def delete_run(
+    _profile: VerifiedProfile,
     profile_id: str,
     run_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],

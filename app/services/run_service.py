@@ -206,8 +206,11 @@ async def _load_profile(profile_id: str) -> dict[str, Any]:
     async with async_session_factory() as session:
         profile = await session.get(UserProfile, profile_id)
         cv_summary = ""
-        if profile and profile.cv_data:
-            cv_summary = _read_cv_bytes(profile.cv_data)
+        if profile:
+            if profile.cv_summary:
+                cv_summary = profile.cv_summary
+            elif profile.cv_data:
+                cv_summary = _read_cv_bytes(profile.cv_data)
         return {
             "profile_targets": _parse_profile_targets(profile),
             "profile_skills": _parse_profile_skills(profile),
@@ -458,11 +461,16 @@ async def execute_run(run_id: str, profile_id: str, mode: str) -> None:
 # ------------------------------------------------------------------
 
 
-async def list_all_runs(db: AsyncSession, limit: int = 10) -> list[RunRead]:
-    """List recent runs across all profiles."""
-    result = await db.execute(
-        select(Run).order_by(Run.created_at.desc()).limit(limit)
-    )
+async def list_all_runs(
+    db: AsyncSession, limit: int = 10, owner_id: str | None = None
+) -> list[RunRead]:
+    """List recent runs across profiles. If owner_id given, filter by profile owner."""
+    query = select(Run).order_by(Run.created_at.desc()).limit(limit)
+    if owner_id is not None:
+        query = query.join(UserProfile, Run.profile_id == UserProfile.id).where(
+            UserProfile.owner_id == owner_id
+        )
+    result = await db.execute(query)
     return [run_to_read(r) for r in result.scalars().all()]
 
 

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import VerifiedProfile
 from app.db import get_db
 from app.models.certification import Certification
 from app.models.course import Course
@@ -37,6 +38,7 @@ class ResultTitleUpdate(BaseModel):
 
 @router.get("/profiles/{profile_id}/results/jobs")
 async def list_jobs(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     run_id: str | None = None,
@@ -47,6 +49,7 @@ async def list_jobs(
 
 @router.get("/profiles/{profile_id}/results/certifications")
 async def list_certifications(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     run_id: str | None = None,
@@ -57,6 +60,7 @@ async def list_certifications(
 
 @router.get("/profiles/{profile_id}/results/courses")
 async def list_courses(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     run_id: str | None = None,
@@ -67,6 +71,7 @@ async def list_courses(
 
 @router.get("/profiles/{profile_id}/results/events")
 async def list_events(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     run_id: str | None = None,
@@ -77,6 +82,7 @@ async def list_events(
 
 @router.get("/profiles/{profile_id}/results/groups")
 async def list_groups(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     run_id: str | None = None,
@@ -87,6 +93,7 @@ async def list_groups(
 
 @router.get("/profiles/{profile_id}/results/trends")
 async def list_trends(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     run_id: str | None = None,
@@ -103,6 +110,7 @@ async def list_trends(
     responses={404: {"description": "Item not found"}},
 )
 async def update_job(
+    _profile: VerifiedProfile,
     profile_id: str,
     item_id: str,
     body: ResultTitleUpdate,
@@ -122,6 +130,7 @@ async def update_job(
     responses={404: {"description": "Item not found"}},
 )
 async def update_certification(
+    _profile: VerifiedProfile,
     profile_id: str,
     item_id: str,
     body: ResultTitleUpdate,
@@ -141,6 +150,7 @@ async def update_certification(
     responses={404: {"description": "Item not found"}},
 )
 async def update_course(
+    _profile: VerifiedProfile,
     profile_id: str,
     item_id: str,
     body: ResultTitleUpdate,
@@ -160,6 +170,7 @@ async def update_course(
     responses={404: {"description": "Item not found"}},
 )
 async def update_event(
+    _profile: VerifiedProfile,
     profile_id: str,
     item_id: str,
     body: ResultTitleUpdate,
@@ -179,6 +190,7 @@ async def update_event(
     responses={404: {"description": "Item not found"}},
 )
 async def update_group(
+    _profile: VerifiedProfile,
     profile_id: str,
     item_id: str,
     body: ResultTitleUpdate,
@@ -198,6 +210,7 @@ async def update_group(
     responses={404: {"description": "Item not found"}},
 )
 async def update_trend(
+    _profile: VerifiedProfile,
     profile_id: str,
     item_id: str,
     body: ResultTitleUpdate,
@@ -223,6 +236,7 @@ async def update_trend(
     },
 )
 async def delete_job(
+    _profile: VerifiedProfile,
     profile_id: str,
     item_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -250,6 +264,7 @@ async def delete_job(
     responses={404: {"description": "Item not found"}},
 )
 async def delete_certification(
+    _profile: VerifiedProfile,
     profile_id: str,
     item_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -267,6 +282,7 @@ async def delete_certification(
     responses={404: {"description": "Item not found"}},
 )
 async def delete_course(
+    _profile: VerifiedProfile,
     profile_id: str,
     item_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -282,6 +298,7 @@ async def delete_course(
     responses={404: {"description": "Item not found"}},
 )
 async def delete_event(
+    _profile: VerifiedProfile,
     profile_id: str,
     item_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -297,6 +314,7 @@ async def delete_event(
     responses={404: {"description": "Item not found"}},
 )
 async def delete_group(
+    _profile: VerifiedProfile,
     profile_id: str,
     item_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -312,6 +330,7 @@ async def delete_group(
     responses={404: {"description": "Item not found"}},
 )
 async def delete_trend(
+    _profile: VerifiedProfile,
     profile_id: str,
     item_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],

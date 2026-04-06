@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import VerifiedProfile
 from app.db import get_db
 from app.services import audit_service
 
@@ -57,6 +58,7 @@ class DiffResponse(BaseModel):
     responses={404: {"description": "Run not found"}},
 )
 async def get_audit_trail(
+    _profile: VerifiedProfile,
     profile_id: str,
     run_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -73,6 +75,7 @@ async def get_audit_trail(
     responses={404: {"description": "No audit bundle found for this run"}},
 )
 async def get_verifier_report(
+    _profile: VerifiedProfile,
     profile_id: str,
     run_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -94,6 +97,7 @@ async def get_verifier_report(
     responses={404: {"description": "Run not found or no usage data"}},
 )
 async def get_token_usage(
+    _profile: VerifiedProfile,
     profile_id: str,
     run_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -115,6 +119,7 @@ async def get_token_usage(
     responses={404: {"description": "Run or audit bundle not found"}},
 )
 async def get_executive_insights(
+    _profile: VerifiedProfile,
     profile_id: str,
     run_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -137,6 +142,7 @@ async def get_executive_insights(
     responses={404: {"description": "Run or audit bundle not found"}},
 )
 async def replay_run(
+    _profile: VerifiedProfile,
     profile_id: str,
     run_id: str,
     body: ReplayRequest,
@@ -168,6 +174,7 @@ async def replay_run(
     responses={404: {"description": "Run not found"}},
 )
 async def diff_runs(
+    _profile: VerifiedProfile,
     profile_id: str,
     run_id: str,
     other_run_id: str,

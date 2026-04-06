@@ -60,6 +60,26 @@ class Settings(BaseSettings):
     search_max_results: int = 10
     search_fetch_top_n: int = 5
 
+    # Auth
+    jwt_secret: str = "change-me-to-a-long-random-string"
+    jwt_access_expiry_minutes: int = 30
+    jwt_refresh_expiry_days: int = 7
+
+    # Google OAuth
+    google_client_id: str = ""
+    google_client_secret: str = ""
+
+    # Email (SMTP)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+
+    # App
+    app_base_url: str = "http://localhost:8000"
+    admin_email: str = ""
+
     model_config = {
         "env_file": Path(__file__).resolve().parent.parent / ".env",
         "extra": "ignore",

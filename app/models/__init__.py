@@ -1,4 +1,6 @@
 # Import all models so Base.metadata is populated for create_all / migrations.
+from app.models.user import User  # noqa: F401
+from app.models.refresh_token import RefreshToken  # noqa: F401
 from app.models.profile import UserProfile  # noqa: F401
 from app.models.run import Run  # noqa: F401
 from app.models.job_opportunity import JobOpportunity  # noqa: F401

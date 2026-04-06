@@ -5,10 +5,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
-from app.api import profiles, runs, audit, results, cover_letters, policies
+from app.api import profiles, runs, audit, results, cover_letters, policies, auth, admin
+from app.auth.rate_limit import limiter
 from app.config import settings as _settings
 from app.db import engine, Base
 from app.services.run_service import recover_orphaned_runs
@@ -34,17 +38,68 @@ logging.basicConfig(
 logging.getLogger("app").setLevel(_log_level)
 
 
+async def _ensure_admin():
+    """Promote the configured admin_email user to admin role on startup."""
+    if not _settings.admin_email:
+        return
+    from sqlalchemy import select, update
+    from app.models.user import User
+    from app.db import async_session_factory
+
+    async with async_session_factory() as session:
+        result = await session.execute(
+            select(User).where(User.email == _settings.admin_email)
+        )
+        user = result.scalar_one_or_none()
+        if user:
+            if user.role != "admin":
+                await session.execute(
+                    update(User)
+                    .where(User.email == _settings.admin_email)
+                    .values(role="admin")
+                )
+                await session.commit()
+                logging.getLogger("app").info("Promoted %s to admin", _settings.admin_email)
+        else:
+            session.add(User(
+                email=_settings.admin_email,
+                first_name="Admin",
+                last_name="",
+                role="admin",
+                email_verified=True,
+            ))
+            await session.commit()
+            logging.getLogger("app").info("Created admin user %s", _settings.admin_email)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Create database tables on startup, then yield to the application."""
     # Create tables on startup
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await _ensure_admin()
     await recover_orphaned_runs()
     yield
 
 
 app = FastAPI(title="AI Executive Assistant Network", lifespan=lifespan)
+
+# Rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        _settings.app_base_url,
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Paths
 spa_dir = Path(__file__).parent.parent / "static" / "spa"
@@ -55,6 +110,8 @@ if spa_assets.is_dir():
     app.mount("/assets", StaticFiles(directory=str(spa_assets)), name="spa-assets")
 
 # JSON API routers (registered BEFORE the SPA catch-all)
+app.include_router(auth.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
 app.include_router(profiles.router, prefix="/api")
 app.include_router(runs.router, prefix="/api")
 app.include_router(audit.router, prefix="/api")

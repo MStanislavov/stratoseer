@@ -8,11 +8,12 @@ import pytest
 from app.models.profile import UserProfile
 
 
-async def _create_complete_profile(client, db_session, name="TestProfile"):
+async def _create_complete_profile(client, db_session, headers, name="TestProfile"):
     """Create a profile with targets, skills, preferred titles, and a CV path so runs can start."""
     profile_resp = await client.post(
         "/api/profiles",
         json={"name": name, "preferred_titles": ["Software Engineer"]},
+        headers=headers,
     )
     profile_id = profile_resp.json()["id"]
 
@@ -29,12 +30,13 @@ async def _create_complete_profile(client, db_session, name="TestProfile"):
 
 
 @pytest.mark.asyncio
-async def test_create_run(client, db_session):
-    profile_id = await _create_complete_profile(client, db_session)
+async def test_create_run(client, db_session, admin_headers):
+    profile_id = await _create_complete_profile(client, db_session, admin_headers)
 
     resp = await client.post(
         f"/api/profiles/{profile_id}/runs",
         json={"mode": "daily"},
+        headers=admin_headers,
     )
     assert resp.status_code == 201
     data = resp.json()
@@ -48,16 +50,17 @@ async def test_create_run(client, db_session):
 
 
 @pytest.mark.asyncio
-async def test_create_run_incomplete_profile(client):
+async def test_create_run_incomplete_profile(client, admin_headers):
     """Creating a run on a profile with no targets/skills/titles/CV should fail."""
     profile_resp = await client.post(
-        "/api/profiles", json={"name": "Empty", "preferred_titles": ["Dev"]}
+        "/api/profiles", json={"name": "Empty", "preferred_titles": ["Dev"]}, headers=admin_headers
     )
     profile_id = profile_resp.json()["id"]
 
     resp = await client.post(
         f"/api/profiles/{profile_id}/runs",
         json={"mode": "daily"},
+        headers=admin_headers,
     )
     assert resp.status_code == 422
     assert "targets" in resp.json()["detail"]
@@ -66,34 +69,36 @@ async def test_create_run_incomplete_profile(client):
 
 
 @pytest.mark.asyncio
-async def test_create_run_profile_not_found(client):
+async def test_create_run_profile_not_found(client, admin_headers):
     resp = await client.post(
         "/api/profiles/nonexistent/runs",
         json={"mode": "daily"},
+        headers=admin_headers,
     )
     assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_create_run_invalid_mode(client):
-    profile_resp = await client.post("/api/profiles", json={"name": "TestProfile", "preferred_titles": ["Dev"]})
+async def test_create_run_invalid_mode(client, admin_headers):
+    profile_resp = await client.post("/api/profiles", json={"name": "TestProfile", "preferred_titles": ["Dev"]}, headers=admin_headers)
     profile_id = profile_resp.json()["id"]
 
     resp = await client.post(
         f"/api/profiles/{profile_id}/runs",
         json={"mode": "invalid_mode"},
+        headers=admin_headers,
     )
     assert resp.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_list_runs(client, db_session):
-    profile_id = await _create_complete_profile(client, db_session)
+async def test_list_runs(client, db_session, admin_headers):
+    profile_id = await _create_complete_profile(client, db_session, admin_headers)
 
-    await client.post(f"/api/profiles/{profile_id}/runs", json={"mode": "daily"})
-    await client.post(f"/api/profiles/{profile_id}/runs", json={"mode": "daily"})
+    await client.post(f"/api/profiles/{profile_id}/runs", json={"mode": "daily"}, headers=admin_headers)
+    await client.post(f"/api/profiles/{profile_id}/runs", json={"mode": "daily"}, headers=admin_headers)
 
-    resp = await client.get(f"/api/profiles/{profile_id}/runs")
+    resp = await client.get(f"/api/profiles/{profile_id}/runs", headers=admin_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 2
@@ -102,15 +107,15 @@ async def test_list_runs(client, db_session):
 
 
 @pytest.mark.asyncio
-async def test_get_run(client, db_session):
-    profile_id = await _create_complete_profile(client, db_session)
+async def test_get_run(client, db_session, admin_headers):
+    profile_id = await _create_complete_profile(client, db_session, admin_headers)
 
     run_resp = await client.post(
-        f"/api/profiles/{profile_id}/runs", json={"mode": "daily"}
+        f"/api/profiles/{profile_id}/runs", json={"mode": "daily"}, headers=admin_headers
     )
     run_id = run_resp.json()["id"]
 
-    resp = await client.get(f"/api/profiles/{profile_id}/runs/{run_id}")
+    resp = await client.get(f"/api/profiles/{profile_id}/runs/{run_id}", headers=admin_headers)
     assert resp.status_code == 200
     assert resp.json()["id"] == run_id
 
@@ -118,25 +123,25 @@ async def test_get_run(client, db_session):
 
 
 @pytest.mark.asyncio
-async def test_get_run_not_found(client):
-    profile_resp = await client.post("/api/profiles", json={"name": "TestProfile", "preferred_titles": ["Dev"]})
+async def test_get_run_not_found(client, admin_headers):
+    profile_resp = await client.post("/api/profiles", json={"name": "TestProfile", "preferred_titles": ["Dev"]}, headers=admin_headers)
     profile_id = profile_resp.json()["id"]
 
-    resp = await client.get(f"/api/profiles/{profile_id}/runs/nonexistent")
+    resp = await client.get(f"/api/profiles/{profile_id}/runs/nonexistent", headers=admin_headers)
     assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_get_run_wrong_profile(client, db_session):
-    p1_id = await _create_complete_profile(client, db_session, "Profile1")
-    p2 = await client.post("/api/profiles", json={"name": "Profile2", "preferred_titles": ["Dev"]})
+async def test_get_run_wrong_profile(client, db_session, admin_headers):
+    p1_id = await _create_complete_profile(client, db_session, admin_headers, "Profile1")
+    p2 = await client.post("/api/profiles", json={"name": "Profile2", "preferred_titles": ["Dev"]}, headers=admin_headers)
     p2_id = p2.json()["id"]
 
-    run_resp = await client.post(f"/api/profiles/{p1_id}/runs", json={"mode": "daily"})
+    run_resp = await client.post(f"/api/profiles/{p1_id}/runs", json={"mode": "daily"}, headers=admin_headers)
     run_id = run_resp.json()["id"]
 
     # Try to access run via wrong profile
-    resp = await client.get(f"/api/profiles/{p2_id}/runs/{run_id}")
+    resp = await client.get(f"/api/profiles/{p2_id}/runs/{run_id}", headers=admin_headers)
     assert resp.status_code == 404
 
     await asyncio.sleep(0.1)

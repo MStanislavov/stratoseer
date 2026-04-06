@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import VerifiedProfile
 from app.db import get_db
 from app.schemas.cover_letter import CoverLetterCreate, CoverLetterRead
 from app.services import cover_letter_service
@@ -23,6 +24,7 @@ router = APIRouter(tags=["cover-letters"])
     },
 )
 async def create_cover_letter(
+    _profile: VerifiedProfile,
     profile_id: str,
     body: CoverLetterCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -38,6 +40,7 @@ async def create_cover_letter(
 
 @router.get("/profiles/{profile_id}/cover-letters")
 async def list_cover_letters(
+    _profile: VerifiedProfile,
     profile_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> list[CoverLetterRead]:
@@ -50,6 +53,7 @@ async def list_cover_letters(
     responses={404: {"description": "Cover letter not found"}},
 )
 async def get_cover_letter(
+    _profile: VerifiedProfile,
     profile_id: str,
     letter_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -67,6 +71,7 @@ async def get_cover_letter(
     responses={404: {"description": "Cover letter not found"}},
 )
 async def delete_cover_letter(
+    _profile: VerifiedProfile,
     profile_id: str,
     letter_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],

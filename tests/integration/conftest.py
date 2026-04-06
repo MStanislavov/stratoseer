@@ -4,11 +4,15 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from app.auth.rate_limit import limiter
 from app.db import Base, get_db
 from app.main import app as fastapi_app
 
 # Import all models to register them with Base.metadata
 import app.models  # noqa: F401
+
+# Disable rate limiting in tests
+limiter.enabled = False
 
 TEST_DB_URL = "sqlite+aiosqlite://"
 
@@ -49,3 +53,37 @@ async def client(db_session):
     ) as c:
         yield c
     fastapi_app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def admin_headers(client):
+    """Register the first user (auto-admin) and return auth headers."""
+    resp = await client.post(
+        "/api/auth/register",
+        json={
+            "first_name": "Admin",
+            "last_name": "User",
+            "email": "admin@test.com",
+            "password": "AdminPass1",
+        },
+    )
+    assert resp.status_code == 201
+    token = resp.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest_asyncio.fixture
+async def auth_headers(client, admin_headers):
+    """Register a second user (regular user) and return auth headers."""
+    resp = await client.post(
+        "/api/auth/register",
+        json={
+            "first_name": "Test",
+            "last_name": "User",
+            "email": "user@test.com",
+            "password": "UserPass1",
+        },
+    )
+    assert resp.status_code == 201
+    token = resp.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}

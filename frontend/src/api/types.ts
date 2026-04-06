@@ -239,3 +239,43 @@ export interface DiffResponse {
   changes: unknown[]
   summary: Record<string, unknown>
 }
+
+// --- Auth types ---
+
+export interface UserRead {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  role: "user" | "admin"
+  email_verified: boolean
+  created_at: string
+  last_login_at: string | null
+}
+
+export interface TokenResponse {
+  access_token: string
+  refresh_token: string
+  token_type: string
+  user: UserRead
+}
+
+export interface AdminUserRead {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  role: string
+  email_verified: boolean
+  created_at: string
+  last_login_at: string | null
+  profile_count: number
+  run_count: number
+}
+
+export interface PaginatedUsers {
+  users: AdminUserRead[]
+  total: number
+  page: number
+  page_size: number
+}
