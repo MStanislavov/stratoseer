@@ -25,3 +25,4 @@ logs
 sonar-issues
 sonar_scanner_error.log
 sonar_scanner_output.log
+.coverage

@@ -117,7 +117,7 @@ Every agent in the system is bound by read-only YAML policy files under `policy/
 
 Stratoseer requires user accounts. Register with email/password or sign in with Google OAuth. An admin panel (accessible to the configured `ADMIN_EMAIL`) lets you manage users.
 
-**Bring Your Own Key (BYOK):** Each user can add their own OpenAI API key in the Settings page. Keys are encrypted at rest. Users without a personal key consume from the server-configured key (if one is set). Run gating in the frontend prevents launching pipelines when no usable key is available.
+**Bring Your Own Key (BYOK):** Each user can add their own OpenAI API key in the Settings page. Keys are encrypted at rest. Users without a personal key consume from the server-configured key (if one is set). Run gating in the frontend prevents launching pipelines when no usable key is available. Cover letter generation is unlimited and does not count toward free trial runs -- users can generate as many cover letters as they want without providing their own API key, as long as a server key is configured.
 
 ---
 
@@ -308,7 +308,7 @@ The API documentation is available at [http://localhost:8000/docs](http://localh
 pytest
 ```
 
-Tests run against an in-memory SQLite database. No external services needed.
+Tests run against an in-memory SQLite database. No external services needed. The test suite has ~99% code coverage across 893 tests (all LLM calls are mocked).
 
 ---
 
