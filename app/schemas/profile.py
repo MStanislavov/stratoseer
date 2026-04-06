@@ -59,6 +59,7 @@ class ProfileRead(BaseModel):
     constraints: list[str] | None = None
     skills: list[str] | None = None
     cv_filename: str | None = None
+    has_cv_summary: bool = False
     # Career & Job
     preferred_titles: list[str] | None = None
     experience_level: str | None = None

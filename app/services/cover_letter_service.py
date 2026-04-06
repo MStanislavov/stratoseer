@@ -108,8 +108,6 @@ async def generate_cover_letter(
     run_id: str,
     profile_id: str,
     cover_letter_id: str,
-    cv_data: bytes | None,
-    skills_fallback: str,
     jd_text: str,
     job_opportunity: dict,
     job_opportunity_id: str | None,
@@ -133,17 +131,24 @@ async def generate_cover_letter(
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
 
-        # Read and summarize CV inside the background task (non-blocking)
-        raw_cv_content = await read_cv_content(cv_data, skills_fallback)
+        # Load profile and use cached CV summary (or generate on demand)
+        async with async_session_factory() as session:
+            profile = await session.get(UserProfile, profile_id)
+            from app.services.profile_service import ensure_cv_summary
 
-        # Extract candidate name from raw CV before summarization loses it
+            cv_content = await ensure_cv_summary(session, profile) if profile else ""
+
+            # Extract candidate name from raw CV text (cheap, no LLM)
+            raw_cv_content = await read_cv_content(
+                profile.cv_data if profile else None,
+                profile.skills or "",
+            )
+
         from app.agents.cover_letter_agent import _extract_name_from_cv
 
         candidate_name = _extract_name_from_cv(raw_cv_content)
         if candidate_name:
             profile_name = candidate_name
-
-        cv_content = await summarize_cv(raw_cv_content)
 
         policy_engine = PolicyEngine(settings.policy_dir)
         audit_writer = AuditWriter(
@@ -270,14 +275,12 @@ async def create_cover_letter(
     await db.refresh(cl)
     await db.refresh(run)
 
-    # Launch pipeline in background (CV reading + summarization happen there)
+    # Launch pipeline in background (uses cached CV summary or generates on demand)
     task = asyncio.create_task(
         generate_cover_letter(
             run_id=run.id,
             profile_id=profile_id,
             cover_letter_id=cl.id,
-            cv_data=profile.cv_data,
-            skills_fallback=profile.skills or "",
             jd_text=jd_text,
             job_opportunity=job_opportunity,
             job_opportunity_id=body.job_opportunity_id,
