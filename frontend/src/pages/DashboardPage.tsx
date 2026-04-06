@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Users, Play, Plus, LayoutDashboard, Upload } from "lucide-react"
 import { createProfile, importProfile, updateProfile } from "@/api/profiles"
+import { ApiError } from "@/api/client"
 import { listAllRuns } from "@/api/runs"
 import type { Run } from "@/api/types"
 import { useProfiles } from "@/contexts/ProfileContext"
@@ -59,11 +60,16 @@ export default function DashboardPage() {
 
   async function handleCreate() {
     if (!newName.trim()) return
-    const profile = await createProfile({ name: newName.trim() })
-    setDialogOpen(false)
-    setNewName("")
-    await refreshProfiles()
-    navigate(`/profiles/${profile.id}`)
+    try {
+      const profile = await createProfile({ name: newName.trim() })
+      setDialogOpen(false)
+      setNewName("")
+      await refreshProfiles()
+      navigate(`/profiles/${profile.id}`)
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) return
+      throw err
+    }
   }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -173,7 +179,7 @@ export default function DashboardPage() {
                     id="name"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder="e.g. John Doe"
+                    placeholder="e.g. Project Manager"
                     onKeyDown={(e) => e.key === "Enter" && handleCreate()}
                   />
                 </div>
@@ -313,7 +319,7 @@ function CreateProfileDialog({
               id="create-name"
               value={name}
               onChange={(e) => onNameChange(e.target.value)}
-              placeholder="e.g. John Doe"
+              placeholder="e.g. Software Engineer"
               onKeyDown={(e) => e.key === "Enter" && onCreate()}
             />
           </div>

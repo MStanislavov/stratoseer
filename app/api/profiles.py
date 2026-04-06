@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.error_messages import profile_not_found
+from app.api.error_messages import profile_name_exists, profile_not_found
 from app.auth.dependencies import CurrentUser, VerifiedProfile
 from app.db import get_db
 from app.schemas.profile import ProfileCreate, ProfileRead, ProfileUpdate
@@ -22,7 +22,10 @@ async def create_profile(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ProfileRead:
     """Create a new profile."""
-    return await profile_service.create_profile(db, body, owner_id=user.id)
+    try:
+        return await profile_service.create_profile(db, body, owner_id=user.id)
+    except ValueError:
+        raise HTTPException(status_code=409, detail=profile_name_exists)
 
 
 @router.get("/profiles")
@@ -62,7 +65,10 @@ async def update_profile(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ProfileRead:
     """Update an existing profile."""
-    result = await profile_service.update_profile(db, profile_id, body)
+    try:
+        result = await profile_service.update_profile(db, profile_id, body)
+    except ValueError:
+        raise HTTPException(status_code=409, detail=profile_name_exists)
     if result is None:
         raise HTTPException(status_code=404, detail=profile_not_found)
     return result
@@ -107,7 +113,10 @@ async def import_profile(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ProfileRead:
     """Import a profile from previously exported data."""
-    return await profile_service.import_profile(db, body, owner_id=user.id)
+    try:
+        return await profile_service.import_profile(db, body, owner_id=user.id)
+    except ValueError:
+        raise HTTPException(status_code=409, detail=profile_name_exists)
 
 
 @router.post(

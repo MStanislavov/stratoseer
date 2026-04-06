@@ -77,10 +77,25 @@ def profile_to_read(profile: UserProfile) -> ProfileRead:
     )
 
 
+async def _check_name_unique(
+    db: AsyncSession, owner_id: str, name: str, exclude_id: str | None = None
+) -> None:
+    """Raise ValueError if another profile with the same owner+name exists."""
+    query = select(UserProfile).where(
+        UserProfile.owner_id == owner_id, UserProfile.name == name
+    )
+    if exclude_id:
+        query = query.where(UserProfile.id != exclude_id)
+    result = await db.execute(query)
+    if result.scalars().first():
+        raise ValueError(f'A profile named "{name}" already exists')
+
+
 async def create_profile(
     db: AsyncSession, body: ProfileCreate, owner_id: str | None = None
 ) -> ProfileRead:
     """Create a new profile and return its read representation."""
+    await _check_name_unique(db, owner_id or "", body.name)
     profile = UserProfile(
         name=body.name,
         owner_id=owner_id or "",
@@ -132,6 +147,8 @@ async def update_profile(
         return None
 
     update_data = body.model_dump(exclude_unset=True)
+    if "name" in update_data:
+        await _check_name_unique(db, profile.owner_id, update_data["name"], exclude_id=profile_id)
     for field in ("targets", "constraints", "skills", "preferred_titles", "industries", "locations", "event_topics", "target_certifications"):
         if field in update_data:
             update_data[field] = _serialize_list(update_data[field])

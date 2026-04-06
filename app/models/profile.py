@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import ForeignKey, LargeBinary, String, Text, DateTime
+from sqlalchemy import ForeignKey, LargeBinary, String, Text, DateTime, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -11,6 +11,7 @@ class UserProfile(Base):
     """Persistent user profile representing an independent workspace."""
 
     __tablename__ = "user_profiles"
+    __table_args__ = (UniqueConstraint("owner_id", "name", name="uq_profile_owner_name"),)
 
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
