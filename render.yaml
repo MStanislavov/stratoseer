@@ -1,8 +1,8 @@
 databases:
-  - name: stratoseer-db
+  - name: &db_name stratoseer-db
     plan: free
-    databaseName: assistant
-    user: assistant
+    databaseName: stratoseer_db
+    user: stratoseer_user
 
 services:
   - type: web
@@ -22,23 +22,23 @@ services:
       # Database (resolved from Render managed PostgreSQL)
       - key: POSTGRES_HOST
         fromDatabase:
-          name: stratoseer-db
+          name: *db_name
           property: host
       - key: POSTGRES_PORT
         fromDatabase:
-          name: stratoseer-db
+          name: *db_name
           property: port
       - key: POSTGRES_USER
         fromDatabase:
-          name: stratoseer-db
+          name: *db_name
           property: user
       - key: POSTGRES_PASSWORD
         fromDatabase:
-          name: stratoseer-db
+          name: *db_name
           property: password
       - key: POSTGRES_DB
         fromDatabase:
-          name: stratoseer-db
+          name: *db_name
           property: database
 
       # Logging
@@ -51,7 +51,7 @@ services:
       - key: API_KEY
         sync: false
       - key: LLM_MODEL
-        value: "gpt-4o-mini"
+        sync: false
 
       ## Security
       - key: JWT_SECRET
