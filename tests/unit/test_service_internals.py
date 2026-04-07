@@ -53,7 +53,6 @@ def _make_profile(
     cv_summary=None,
     cv_summary_hash=None,
     preferred_titles='["Senior Engineer"]',
-    experience_level="senior",
     industries='["tech"]',
     locations='["US"]',
     work_arrangement="remote",
@@ -76,7 +75,6 @@ def _make_profile(
     p.cv_summary = cv_summary
     p.cv_summary_hash = cv_summary_hash
     p.preferred_titles = preferred_titles
-    p.experience_level = experience_level
     p.industries = industries
     p.locations = locations
     p.work_arrangement = work_arrangement
@@ -277,7 +275,6 @@ class TestLoadProfile:
         assert result["profile_targets"] == ["backend", "cloud"]
         assert result["profile_skills"] == ["Python", "AWS"]
         assert result["profile_constraints"] == ["remote only"]
-        assert result["experience_level"] == "senior"
         assert result["work_arrangement"] == "remote"
 
     @patch("app.services.run_service._read_cv_bytes", return_value="Extracted text")
@@ -443,7 +440,6 @@ class TestExecuteRun:
             "profile_constraints": [],
             "cv_summary": "A summary",
             "preferred_titles": [],
-            "experience_level": "",
             "industries": [],
             "locations": [],
             "work_arrangement": "",
@@ -549,7 +545,7 @@ class TestExecuteRun:
         mock_start.return_value = True
         mock_load.return_value = {
             "profile_targets": [], "profile_skills": [], "profile_constraints": [],
-            "cv_summary": "", "preferred_titles": [], "experience_level": "",
+            "cv_summary": "", "preferred_titles": [],
             "industries": [], "locations": [], "work_arrangement": "",
             "event_attendance": "", "event_topics": [], "target_certifications": [],
             "learning_format": "",
@@ -607,7 +603,7 @@ class TestExecuteRun:
         mock_start.return_value = True
         mock_load.return_value = {
             "profile_targets": [], "profile_skills": [], "profile_constraints": [],
-            "cv_summary": "", "preferred_titles": [], "experience_level": "",
+            "cv_summary": "", "preferred_titles": [],
             "industries": [], "locations": [], "work_arrangement": "",
             "event_attendance": "", "event_topics": [], "target_certifications": [],
             "learning_format": "",
@@ -1052,7 +1048,6 @@ class TestExportProfile:
             constraints='["remote"]',
             skills='["Python"]',
             preferred_titles='["Senior Eng"]',
-            experience_level="senior",
             industries='["tech"]',
             locations='["US"]',
             work_arrangement="remote",
@@ -1068,8 +1063,6 @@ class TestExportProfile:
         assert result["name"] == "Architect"
         assert result["targets"] == ["backend"]
         assert result["skills"] == ["Python"]
-        assert result["experience_level"] == "senior"
-
     async def test_returns_none_when_not_found(self):
         from app.services.profile_service import export_profile
 
@@ -1092,7 +1085,6 @@ class TestImportProfile:
             "name": "My Profile",
             "targets": ["backend"],
             "skills": ["Python"],
-            "experience_level": "senior",
         }
         result = await import_profile(db, data, owner_id="user-1")
 

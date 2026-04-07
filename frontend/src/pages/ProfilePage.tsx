@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 
-const EXPERIENCE_LEVELS = ["junior", "mid", "senior", "lead", "principal", "executive"]
 const WORK_ARRANGEMENTS = ["remote", "hybrid", "onsite"]
 const EVENT_ATTENDANCES = ["local", "remote", "no preference"]
 const LEARNING_FORMATS = ["online", "in-person", "self-paced", "instructor-led"]
@@ -58,7 +57,6 @@ export default function ProfilePage() {
   const [skills, setSkills] = useState<string[]>([])
   // Career & Job
   const [preferredTitles, setPreferredTitles] = useState<string[]>([])
-  const [experienceLevel, setExperienceLevel] = useState("")
   const [industries, setIndustries] = useState<string[]>([])
   const [locations, setLocations] = useState<string[]>([])
   const [workArrangement, setWorkArrangement] = useState("")
@@ -75,14 +73,14 @@ export default function ProfilePage() {
   const profileRef = useRef<Profile | null>(null)
   const formRef = useRef({
     name, targets, constraints, skills,
-    preferred_titles: preferredTitles, experience_level: experienceLevel,
+    preferred_titles: preferredTitles,
     industries, locations, work_arrangement: workArrangement, event_attendance: eventAttendance,
     event_topics: eventTopics, target_certifications: targetCertifications, learning_format: learningFormat,
   })
   // Update refs synchronously every render (before any effects/cleanup)
   formRef.current = {
     name, targets, constraints, skills,
-    preferred_titles: preferredTitles, experience_level: experienceLevel,
+    preferred_titles: preferredTitles,
     industries, locations, work_arrangement: workArrangement, event_attendance: eventAttendance,
     event_topics: eventTopics, target_certifications: targetCertifications, learning_format: learningFormat,
   }
@@ -94,7 +92,6 @@ export default function ProfilePage() {
     setConstraints(source.constraints as string[] ?? [])
     setSkills(source.skills as string[] ?? [])
     setPreferredTitles(source.preferred_titles as string[] ?? [])
-    setExperienceLevel(source.experience_level as string ?? "")
     setIndustries(source.industries as string[] ?? [])
     setLocations(source.locations as string[] ?? [])
     setWorkArrangement(source.work_arrangement as string ?? "")
@@ -112,7 +109,7 @@ export default function ProfilePage() {
         const fallback: Record<string, unknown> = {
           name: p.name, targets: p.targets ?? [], constraints: p.constraints ?? [],
           skills: p.skills ?? [], preferred_titles: p.preferred_titles ?? [],
-          experience_level: p.experience_level ?? "", industries: p.industries ?? [],
+          industries: p.industries ?? [],
           locations: p.locations ?? [], work_arrangement: p.work_arrangement ?? "",
           event_attendance: p.event_attendance ?? "no preference",
           event_topics: p.event_topics ?? [], target_certifications: p.target_certifications ?? [],
@@ -140,7 +137,7 @@ export default function ProfilePage() {
   function buildSaved(p: Profile) {
     return {
       name: p.name, targets: p.targets ?? [], constraints: p.constraints ?? [], skills: p.skills ?? [],
-      preferred_titles: p.preferred_titles ?? [], experience_level: p.experience_level ?? "",
+      preferred_titles: p.preferred_titles ?? [],
       industries: p.industries ?? [], locations: p.locations ?? [], work_arrangement: p.work_arrangement ?? "",
       event_attendance: p.event_attendance ?? "no preference",
       event_topics: p.event_topics ?? [], target_certifications: p.target_certifications ?? [], learning_format: p.learning_format ?? "",
@@ -160,7 +157,7 @@ export default function ProfilePage() {
     } else {
       localStorage.removeItem(draftKey)
     }
-  }, [draftKey, name, targets, constraints, skills, preferredTitles, experienceLevel, industries, locations, workArrangement, eventAttendance, eventTopics, targetCertifications, learningFormat, profile])
+  }, [draftKey, name, targets, constraints, skills, preferredTitles, industries, locations, workArrangement, eventAttendance, eventTopics, targetCertifications, learningFormat, profile])
 
   // Save draft on unmount so fast navigation doesn't lose changes
   useEffect(() => {
@@ -191,7 +188,6 @@ export default function ProfilePage() {
     const data: ProfileUpdate = {
       name, targets, constraints, skills,
       preferred_titles: preferredTitles,
-      experience_level: experienceLevel || null,
       industries: industries.length > 0 ? industries : null,
       locations: locations.length > 0 ? locations : null,
       work_arrangement: workArrangement || null,
@@ -413,7 +409,6 @@ export default function ProfilePage() {
           examples={["Software Engineer", "Engineering Manager", "Data Scientist", "Product Manager"]}
           required
         />
-        <SelectCard label="Experience Level" value={experienceLevel} onChange={setExperienceLevel} options={EXPERIENCE_LEVELS} optional />
         <TagCard
           label="Industries"
           items={industries}

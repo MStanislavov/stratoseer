@@ -19,7 +19,6 @@ class DailyState(TypedDict, total=False):
 
     # Structured profile fields (all optional)
     preferred_titles: list[str]
-    experience_level: str
     industries: list[str]
     locations: list[str]
     work_arrangement: str
@@ -83,7 +82,6 @@ class WeeklyState(TypedDict, total=False):
 
     # Structured profile fields (all optional)
     preferred_titles: list[str]
-    experience_level: str
     industries: list[str]
     locations: list[str]
     work_arrangement: str

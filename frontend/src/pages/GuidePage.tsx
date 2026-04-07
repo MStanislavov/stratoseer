@@ -77,7 +77,7 @@ const steps: StepProps[] = [
       "Add at least one career goal describing what you want to achieve (e.g. \"Find a senior backend role\", \"Earn an AWS certification\").",
       "Add your skills so scouts know what to search for and the verifier can score relevance.",
       "Add your preferred job titles so scouts know exactly what roles to search for on LinkedIn (e.g. \"Staff Engineer\", \"Engineering Manager\").",
-      "Optionally refine your profile with industries, locations, experience level, work arrangement, and learning preferences.",
+      "Optionally refine your profile with industries, locations, work arrangement, and learning preferences.",
     ],
     link: { label: "Go to Dashboard", to: "/" },
   },

@@ -306,14 +306,12 @@ class TestGoalExtractorAgent:
     def test_build_job_prompt_with_all_fields(self):
         prompt = GoalExtractorAgent._build_job_prompt(
             preferred_titles=["Data Scientist", "ML Engineer"],
-            experience_level="senior",
             industries=["tech", "finance"],
             locations=["New York", "London"],
             work_arrangement="hybrid",
             constraints=["No travel", "Visa sponsorship"],
         )
         assert "Data Scientist and ML Engineer" in prompt
-        assert "senior" in prompt
         assert "tech and finance" in prompt
         assert "New York, London" in prompt
         assert "no travel" in prompt
@@ -393,7 +391,6 @@ class TestGoalExtractorAgent:
                 "preferred_titles": ["Eng"],
                 "cv_summary": "Experienced developer with 10 years",
                 "profile_constraints": ["No relocation"],
-                "experience_level": "senior",
                 "industries": ["tech"],
                 "locations": ["NYC"],
                 "work_arrangement": "hybrid",
@@ -410,7 +407,6 @@ class TestGoalExtractorAgent:
         assert "CV summary:" in user_content
         assert "Experienced developer" in user_content
         assert "No relocation" in user_content
-        assert "senior" in user_content
         assert "tech" in user_content
         assert "NYC" in user_content
         assert "hybrid" in user_content

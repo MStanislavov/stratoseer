@@ -18,7 +18,6 @@ class GoalExtractorAgent(LLMAgent):
     @staticmethod
     def _build_job_prompt(
         preferred_titles: list[str],
-        experience_level: str = "",
         industries: list[str] | None = None,
         locations: list[str] | None = None,
         work_arrangement: str = "",
@@ -27,9 +26,6 @@ class GoalExtractorAgent(LLMAgent):
         """Build a deterministic LinkedIn job search directive from structured profile fields."""
         parts: list[str] = ["Search LinkedIn for",
                             work_arrangement if work_arrangement else ""]
-
-        if experience_level:
-            parts.append(experience_level)
 
         parts.append(" and ".join(preferred_titles))
         parts.append("job openings")
@@ -54,7 +50,6 @@ class GoalExtractorAgent(LLMAgent):
 
         # Structured fields
         preferred_titles = state.get("preferred_titles", [])
-        experience_level = state.get("experience_level", "")
         industries = state.get("industries", [])
         locations = state.get("locations", [])
         work_arrangement = state.get("work_arrangement", "")
@@ -66,7 +61,6 @@ class GoalExtractorAgent(LLMAgent):
         # Build job_prompt deterministically from structured fields
         job_prompt = self._build_job_prompt(
             preferred_titles=preferred_titles,
-            experience_level=experience_level,
             industries=industries,
             locations=locations,
             work_arrangement=work_arrangement,
@@ -83,8 +77,6 @@ class GoalExtractorAgent(LLMAgent):
             user_parts.append(f"Profile constraints: {json.dumps(constraints)}")
         if preferred_titles:
             user_parts.append(f"Preferred job titles: {json.dumps(preferred_titles)}")
-        if experience_level:
-            user_parts.append(f"Experience level: {experience_level}")
         if industries:
             user_parts.append(f"Target industries: {json.dumps(industries)}")
         if locations:

@@ -31,7 +31,6 @@ class UserProfile(Base):
 
     # Career & Job
     preferred_titles: Mapped[str | None] = mapped_column(Text, nullable=True)
-    experience_level: Mapped[str | None] = mapped_column(String(20), nullable=True)
     industries: Mapped[str | None] = mapped_column(Text, nullable=True)
     locations: Mapped[str | None] = mapped_column(Text, nullable=True)
     work_arrangement: Mapped[str | None] = mapped_column(String(20), nullable=True)

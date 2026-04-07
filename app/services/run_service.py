@@ -219,7 +219,6 @@ async def _load_profile(profile_id: str) -> dict[str, Any]:
             "cv_summary": cv_summary,
             # Structured profile fields
             "preferred_titles": _parse_json_list(profile, "preferred_titles"),
-            "experience_level": getattr(profile, "experience_level", "") or "",
             "industries": _parse_json_list(profile, "industries"),
             "locations": _parse_json_list(profile, "locations"),
             "work_arrangement": getattr(profile, "work_arrangement", "") or "",

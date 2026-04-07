@@ -52,7 +52,6 @@ def _make_profile(
     cv_summary=None,
     cv_summary_hash=None,
     preferred_titles='["Senior Engineer"]',
-    experience_level="senior",
     industries='["tech"]',
     locations='["US"]',
     work_arrangement="remote",
@@ -76,7 +75,6 @@ def _make_profile(
     p.cv_summary = cv_summary
     p.cv_summary_hash = cv_summary_hash
     p.preferred_titles = preferred_titles
-    p.experience_level = experience_level
     p.industries = industries
     p.locations = locations
     p.work_arrangement = work_arrangement
@@ -1782,7 +1780,6 @@ class TestProfileToRead:
         assert read.name == "Architect"
         assert read.targets == ["backend", "cloud"]
         assert read.skills == ["Python", "AWS"]
-        assert read.experience_level == "senior"
 
 
 class TestCheckNameUnique:
@@ -1823,7 +1820,6 @@ class TestCreateProfile:
             obj.cv_filename = None
             obj.cv_summary = None
             obj.preferred_titles = None
-            obj.experience_level = None
             obj.industries = None
             obj.locations = None
             obj.work_arrangement = None

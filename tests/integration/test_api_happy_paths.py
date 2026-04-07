@@ -245,7 +245,6 @@ class TestProfileHappyPaths:
                 "targets": ["backend"],
                 "skills": ["python"],
                 "preferred_titles": ["Backend Dev"],
-                "experience_level": "senior",
                 "industries": ["fintech"],
                 "locations": ["remote"],
                 "work_arrangement": "remote",
@@ -268,7 +267,7 @@ class TestProfileHappyPaths:
         data = imported.json()
         assert data["targets"] == ["backend"]
         assert data["skills"] == ["python"]
-        assert data["experience_level"] == "senior"
+        assert data["skills"] == ["python"]
 
     @pytest.mark.asyncio
     async def test_upload_cv_pdf_success(self, client, admin_headers):

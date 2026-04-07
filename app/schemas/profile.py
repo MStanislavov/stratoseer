@@ -14,7 +14,6 @@ class ProfileCreate(BaseModel):
     skills: list[str] | None = None
     # Career & Job
     preferred_titles: list[str] | None = None
-    experience_level: str | None = None
     industries: list[str] | None = None
     locations: list[str] | None = None
     work_arrangement: str | None = None
@@ -34,7 +33,6 @@ class ProfileUpdate(BaseModel):
     skills: list[str] | None = None
     # Career & Job
     preferred_titles: list[str] | None = None
-    experience_level: str | None = None
     industries: list[str] | None = None
     locations: list[str] | None = None
     work_arrangement: str | None = None
@@ -64,7 +62,6 @@ class ProfileRead(BaseModel):
     has_cv_summary: bool = False
     # Career & Job
     preferred_titles: list[str] | None = None
-    experience_level: str | None = None
     industries: list[str] | None = None
     locations: list[str] | None = None
     work_arrangement: str | None = None
@@ -86,7 +83,6 @@ class ProfileExport(BaseModel):
     skills: list[str] | None = None
     # Career & Job
     preferred_titles: list[str] | None = None
-    experience_level: str | None = None
     industries: list[str] | None = None
     locations: list[str] | None = None
     work_arrangement: str | None = None
