@@ -12,7 +12,7 @@ from app.engine.audit_writer import AuditEvent, AuditWriter
 from app.engine.policy_engine import PolicyEngine
 from app.engine.token_tracker import RunTokenTracker
 from app.engine.verifier import Verifier
-from app.graphs.log import _publish_sse, make_fan_out_node, make_node, make_url_filter_report_node, node_end, node_start, route, warn
+from app.graphs.log import _publish_sse, make_fan_out_node, make_job_expiry_validator_node, make_node, make_url_filter_report_node, node_end, node_start, route, warn
 from app.graphs.state import WeeklyState
 
 _P = "weekly"
@@ -237,13 +237,15 @@ def build_weekly_graph(
         policy_engine, audit_writer, verifier, event_manager,
         token_tracker=token_tracker,
     ))
+    graph.add_node("job_expiry_check", make_job_expiry_validator_node(_P, audit_writer, event_manager))
     graph.add_node("url_filter_report", make_url_filter_report_node(_P, audit_writer, event_manager))
     graph.add_node("audit_writer", _make_audit_node(audit_writer, policy_engine, verifier, event_manager))
     graph.add_node("safe_degrade", _safe_degrade_node)
 
     graph.set_entry_point("goal_extractor")
     graph.add_edge("goal_extractor", "web_scrapers")
-    graph.add_edge("web_scrapers", "url_filter_report")
+    graph.add_edge("web_scrapers", "job_expiry_check")
+    graph.add_edge("job_expiry_check", "url_filter_report")
     graph.add_conditional_edges(
         "url_filter_report",
         _check_scraper_results,

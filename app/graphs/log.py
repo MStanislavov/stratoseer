@@ -418,6 +418,133 @@ def make_fan_out_node(
 
 
 # ------------------------------------------------------------------
+# Job expiry re-validation (second pass, deterministic)
+# ------------------------------------------------------------------
+
+_EXPIRY_FETCH_TIMEOUT = 8
+_EXPIRY_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+
+def _fetch_and_check_expiry(url: str, phrases: list[str]) -> str:
+    """Fetch *url*, return matched expiry phrase or empty string.
+
+    Returns empty on fetch errors (fail-open).
+    """
+    import httpx
+    from bs4 import BeautifulSoup
+
+    try:
+        with httpx.Client(timeout=_EXPIRY_FETCH_TIMEOUT, headers=_EXPIRY_HEADERS) as client:
+            resp = client.get(url.strip(), follow_redirects=True)
+            soup = BeautifulSoup(resp.text, "html.parser")
+            for tag in soup(["script", "style"]):
+                tag.decompose()
+            body = soup.get_text(separator="\n", strip=True).lower()
+    except Exception:
+        return ""
+
+    for phrase in phrases:
+        if phrase.lower() in body:
+            return phrase
+    return ""
+
+
+def make_job_expiry_validator_node(
+    pipeline: str,
+    audit_writer: AuditWriter | None = None,
+    event_manager: Any | None = None,
+) -> Callable[..., Any]:
+    """Re-fetch every job URL after the scraper and filter out expired listings.
+
+    Runs between ``web_scrapers`` and ``url_filter_report``.  Fail-open: jobs
+    with empty URLs or fetch errors pass through unchanged.
+    """
+    from app.agents.web_scraper import _INVALID_PHRASES
+
+    phrases = _INVALID_PHRASES.get("job", [])
+
+    async def _node(state: dict[str, Any]) -> dict[str, Any]:
+        run_id = state.get("run_id", "unknown")
+        now = datetime.now(timezone.utc).isoformat
+        node_name = "job_expiry_check"
+
+        await _publish_sse(event_manager, run_id, {
+            "type": "static_validator_started",
+            "agent": node_name,
+            "timestamp": now(),
+        })
+
+        node_start(pipeline, state, node_name)
+        t0 = time.monotonic()
+
+        if audit_writer:
+            await audit_writer.append(run_id, AuditEvent(
+                timestamp=now(),
+                event_type="static_validator_start",
+                agent=node_name,
+                node_type="static_validator",
+            ))
+
+        raw_jobs = list(state.get("raw_job_results", []))
+        existing_filtered = list(state.get("filtered_job_urls", []))
+
+        valid: list[dict[str, Any]] = []
+        expired: list[dict[str, Any]] = []
+
+        for job in raw_jobs:
+            url = (job.get("url") or "").strip()
+            if not url:
+                valid.append(job)
+                continue
+
+            reason = await asyncio.to_thread(_fetch_and_check_expiry, url, phrases)
+            if reason:
+                expired.append({"url": url, "reason": f"expiry recheck: {reason}"})
+                logger.debug("job_expiry_check: filtered %s (%s)", url, reason)
+            else:
+                valid.append(job)
+
+        elapsed = time.monotonic() - t0
+
+        report = {
+            "checked": len(raw_jobs),
+            "expired": len(expired),
+            "passed": len(valid),
+            "details": expired,
+        }
+
+        node_end(pipeline, state, node_name, elapsed, expired=len(expired))
+
+        if audit_writer:
+            await audit_writer.append(run_id, AuditEvent(
+                timestamp=now(),
+                event_type="static_validator_end",
+                agent=node_name,
+                node_type="static_validator",
+                data=report,
+            ))
+
+        await _publish_sse(event_manager, run_id, {
+            "type": "static_validator_completed",
+            "agent": node_name,
+            "verification_status": "pass",
+            "elapsed": round(elapsed, 2),
+            "timestamp": now(),
+        })
+
+        return {
+            "raw_job_results": valid,
+            "filtered_job_urls": existing_filtered + expired,
+        }
+
+    return _node
+
+
+# ------------------------------------------------------------------
 # make_url_filter_report_node: static stage that surfaces rejected URLs
 # ------------------------------------------------------------------
 
