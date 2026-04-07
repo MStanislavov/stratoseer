@@ -159,7 +159,7 @@ class TestLLMAgent:
         loader.load.return_value = "Custom prompt for {today}"
         agent = LLMAgent(llm=_make_mock_llm(), prompt_loader=loader)
         agent.agent_name = "goal_extractor"
-        prompt = agent._get_system_prompt(today="2026-01-01")
+        agent._get_system_prompt(today="2026-01-01")
         loader.load.assert_called_once_with("goal_extractor", today="2026-01-01")
 
     async def test_try_structured_methods_succeeds_on_first_try(self):
@@ -249,7 +249,7 @@ class TestLLMAgent:
         raw.usage_metadata = None
         result = {"raw": raw, "parsed": None, "parsing_error": ValueError("parse failed")}
 
-        out, usage = agent._recover_parsed_output(result, GoalExtractorOutput)
+        out, _ = agent._recover_parsed_output(result, GoalExtractorOutput)
         assert out is not None
         assert out.cert_prompt == "a"
 
@@ -277,7 +277,7 @@ class TestLLMAgent:
         structured_llm.ainvoke.return_value = _make_structured_result(parsed, usage=usage_meta)
         llm.with_structured_output.return_value = structured_llm
 
-        out, usage = await agent._invoke_structured(
+        out, _ = await agent._invoke_structured(
             GoalExtractorOutput, "system prompt", "user content",
         )
         assert out is parsed
@@ -399,7 +399,7 @@ class TestGoalExtractorAgent:
                 "target_certifications": ["AWS SAA"],
                 "learning_format": "self-paced",
             }
-            result = await agent(state)
+            await agent(state)
 
         # Verify _invoke_structured was called with proper user_content
         call_args = mock_invoke.call_args

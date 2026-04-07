@@ -45,7 +45,6 @@ class GoalExtractorAgent(LLMAgent):
         """Generate search prompts for each category from the profile state."""
         targets = state.get("profile_targets", [])
         constraints = state.get("profile_constraints", [])
-        cv_summary = state.get("cv_summary", "")
         today = date.today().isoformat()
 
         # Structured fields
