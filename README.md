@@ -377,6 +377,10 @@ Each agent's input and output tokens are tracked against budgets defined in `pol
 
 User-provided API keys are encrypted at rest using Fernet symmetric encryption. The frontend gates run creation on whether a usable key is available (personal or server-level).
 
+### Non-deterministic by nature
+
+The entire system relies on LLM-generated search directives, web scraping, and AI-powered analysis. Results will vary between runs even with identical inputs. We cannot promise 100% accuracy -- URLs may go stale, search engines may return different results, and LLM outputs are inherently non-deterministic. The verifier and audit trail exist to make this variance visible and traceable, not to eliminate it.
+
 ### System overview
 
 <img src="docs/arch-snapshot.png" width="850" alt="Architecture overview" />

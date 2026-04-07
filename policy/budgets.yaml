@@ -21,7 +21,7 @@ agents:
     min_searches: 20
     min_results: 7
     max_input_tokens: 200000
-    max_output_tokens: 100000
+    max_output_tokens: 150000
     type: llm
   web_scraper_event_daily:
     max_steps: 5
