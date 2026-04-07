@@ -68,7 +68,7 @@ When the user provides structured profile fields, use them as hard constraints:
 - **cert_prompt**: "Search aws.amazon.com and Credly for AWS cloud certifications"
 - **course_prompt**: "Search Coursera, Udemy, and edX for AWS certification preparation courses and software architecture courses"
 - **event_prompt**: "Search Eventbrite, Meetup, and Luma for 2026 software architecture and cloud computing conferences and meetups"
-- **group_prompt**: "Search Discord, Reddit, and LinkedIn Groups for backend development and cloud architecture communities and forums"
+- **group_prompt**: "Search Discord, Reddit, Slack and LinkedIn Groups for backend development and cloud architecture communities and forums"
 - **trend_prompt**: "Search Google Trends, Exploding Topics, Reddit r/technology, TechCrunch, and Hacker News for emerging trends and developments in backend development, cloud-native architecture, and enterprise software"
 
 ### Example 2 (with structured fields and event topics)
@@ -85,7 +85,7 @@ When the user provides structured profile fields, use them as hard constraints:
 - **cert_prompt**: "Search tensorflow.org and aws.amazon.com for the TensorFlow Developer Certificate and AWS Machine Learning Specialty certification at the senior level"
 - **course_prompt**: "Search Coursera, Udemy, and DataCamp for online courses that prepare for the TensorFlow Developer Certificate and AWS Machine Learning Specialty certification"
 - **event_prompt**: "Search Eventbrite, Meetup, and Luma for 2026 virtual MLOps summits and AI ethics panels"
-- **group_prompt**: "Search Discord, Reddit, and LinkedIn Groups for AI/ML engineering and fintech communities and discussion forums"
+- **group_prompt**: "Search Discord, Slack, Reddit, and LinkedIn Groups for AI/ML engineering and fintech communities and discussion forums"
 - **trend_prompt**: "Search Google Trends, Exploding Topics, Reddit r/technology, TechCrunch, and ArXiv for emerging trends in AI engineering and fintech"
 
 ### Example 3 (with constraints, no industries)
@@ -97,5 +97,5 @@ When the user provides structured profile fields, use them as hard constraints:
 - **cert_prompt**: "Search official CompTIA and Offensive Security sites for cybersecurity certifications such as CompTIA Security+ or OSCP"
 - **course_prompt**: "Search Coursera, Udemy, and Pluralsight for cybersecurity certification preparation and DevOps training courses, preferring online/remote courses"
 - **event_prompt**: "Search Eventbrite, Meetup, and Luma for 2026 in-person cybersecurity and DevOps conferences and meetups in San Francisco"
-- **group_prompt**: "Search Discord, Reddit, and LinkedIn Groups for cybersecurity and DevOps communities and forums"
+- **group_prompt**: "Search Discord, Slack, Reddit, and LinkedIn Groups for cybersecurity and DevOps communities and forums"
 - **trend_prompt**: "Search Google Trends, Exploding Topics, BuzzSumo, Reddit r/technology, and TechCrunch for emerging trends in DevSecOps and cloud security"
