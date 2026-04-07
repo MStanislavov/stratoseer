@@ -60,11 +60,6 @@ class Settings(BaseSettings):
     search_max_results: int = 10
     search_fetch_top_n: int = 5
 
-    # Search fallback (empty = disabled; Yahoo/Bing scrapers are always available)
-    brave_search_api_key: str = ""
-    searxng_instance_url: str = ""  # e.g. "https://searx.be"
-    search_fallback_retry_delay: float = 2.0
-
     # BYOK (Bring Your Own Key)
     api_key_encryption_secret: str = "change-me-to-a-long-random-string-for-encryption"
     free_run_limit: int = 1

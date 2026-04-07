@@ -78,20 +78,7 @@ def create_agent_factory(api_key: str) -> AgentFactory:
 
     search_tool = None
     try:
-        fallback_configs: list[dict[str, str]] = []
-        if settings.brave_search_api_key:
-            fallback_configs.append({"provider": "brave", "api_key": settings.brave_search_api_key})
-        if settings.searxng_instance_url:
-            fallback_configs.append({"provider": "searxng", "instance_url": settings.searxng_instance_url})
-        # Scrapers are always available (no API key needed)
-        fallback_configs.append({"provider": "yahoo"})
-        fallback_configs.append({"provider": "bing"})
-
-        search_tool = SafeDuckDuckGoSearchTool(
-            timelimit="m",
-            fallback_configs=fallback_configs,
-            retry_delay=settings.search_fallback_retry_delay,
-        )
+        search_tool = SafeDuckDuckGoSearchTool(timelimit="m")
     except ImportError:
         logger.warning("duckduckgo-search not installed, web scraper search tool unavailable")
 
