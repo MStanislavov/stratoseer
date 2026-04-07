@@ -335,11 +335,21 @@ The included `docker-compose.yml` provides PostgreSQL and SonarQube:
 docker compose up -d      # Starts Postgres on :5432 and SonarQube on :9000
 ```
 
+### CI/CD
+
+A GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and pull request to `main`:
+
+1. **Lint** -- `ruff check .`
+2. **Test** -- `pytest` (901 tests against in-memory SQLite)
+3. **Deploy** -- on push to `main` only, triggers a Render deploy hook after lint and tests pass
+
+Pull requests get lint + test feedback without triggering a deployment.
+
 ### Render (cloud)
 
-A `render.yaml` blueprint is included for one-click deploy to [Render](https://render.com). It provisions a managed PostgreSQL database and a web service that builds both backend and frontend, then runs Alembic migrations on each deploy.
+A `render.yaml` blueprint is included for deploy to [Render](https://render.com). It provisions a managed PostgreSQL database and a web service that builds both backend and frontend, then runs Alembic migrations on each deploy. Auto-deploy is disabled -- deployments are gated on the CI pipeline passing.
 
-Set the required environment variables (API_KEY, JWT_SECRET, ADMIN_EMAIL, etc.) in the Render dashboard.
+Set the required environment variables (API_KEY, JWT_SECRET, ADMIN_EMAIL, etc.) in the Render dashboard. Add the Render Deploy Hook URL as a `RENDER_DEPLOY_HOOK_URL` secret in your GitHub repository settings.
 
 ---
 
@@ -399,6 +409,7 @@ The entire system relies on LLM-generated search directives, web scraping, and A
 | Real-time | Server-Sent Events (SSE)                                |
 | Observability | LangSmith tracing (optional) + Built-in Auditing        |
 | Policies | YAML under `policy/`                                    |
+| CI/CD | GitHub Actions (lint + test + deploy gate)               |
 | Deploy | Docker Compose (local) / Render (cloud)                 |
 | Testing | pytest + pytest-asyncio + in-memory SQLite              |
 
