@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from datetime import date
 from typing import Any
 
@@ -17,8 +18,12 @@ _EXTRACTION_PROMPT = (
     "Put ALL relevant URLs found during searching into the `results` array. "
     "IMPORTANT: Only include URLs that point to specific individual pages "
     "(e.g. a single job listing, a single event page, a single course page). "
-    "Do NOT include search result pages, directory listings, or homepage URLs. "
-    "Put exact duplicates or clearly unrelated URLs into `filtered_urls`."
+    "If the search results contain individual listing URLs that were extracted "
+    "from search/directory pages (e.g. linkedin.com/jobs/view/ URLs found by "
+    "fetching a linkedin.com/jobs/search/ page), include those individual URLs "
+    "in `results` -- they are valid. "
+    "Put search/directory page URLs themselves, exact duplicates, or clearly "
+    "unrelated URLs into `filtered_urls`."
 )
 
 # URL patterns that indicate a search/directory page rather than a specific listing
@@ -26,6 +31,8 @@ _DIRECTORY_PATTERNS: dict[str, list[str]] = {
     "job": [
         "linkedin.com/jobs/search",
         "linkedin.com/jobs/?",
+        "indeed.com/jobs?",
+        "glassdoor.com/Job/jobs",
     ],
     "event": [
         "meetup.com/topics/",
@@ -35,9 +42,15 @@ _DIRECTORY_PATTERNS: dict[str, list[str]] = {
     ],
 }
 
-# URL patterns that a valid listing MUST match (if set for category)
+# URL patterns that a valid listing MUST match at least one of (if set for category)
 _REQUIRED_URL_PATTERNS: dict[str, list[str]] = {
-    "job": ["/jobs/view/"],
+    "job": [
+        "/jobs/view/",       # LinkedIn individual listing
+        "/viewjob",          # Indeed individual listing
+        "/job-listing/",     # Glassdoor individual listing
+        "/job/",             # Generic job board pattern
+        "/position/",        # Some job boards use this
+    ],
 }
 
 # ANSI colors per scraper category for log output
@@ -556,7 +569,7 @@ class WebScraperAgent(LLMAgent):
         while (
             min_results
             and len(unique_results) < min_results
-            and result_retry < 3
+            and result_retry < 2
             and step < max_steps
             and llm_with_tools is not None
         ):
@@ -624,6 +637,71 @@ class WebScraperAgent(LLMAgent):
             all_filtered.extend(new_rejected)
 
         return unique_results, all_filtered, search_count, step
+
+    # ------------------------------------------------------------------
+    # Helper: fetch search/directory pages and extract individual URLs
+    # ------------------------------------------------------------------
+
+    async def _extract_from_search_pages(
+        self,
+        search_page_urls: list[str],
+        seen_urls: set[str],
+        category: str,
+    ) -> tuple[list[WebScraperResult], list[FilteredURL]]:
+        """Fetch search pages and extract individual listing URLs from HTML.
+
+        Returns (new_results, new_filtered). Updates *seen_urls* in place.
+        """
+        tag = _cat_tag(category)
+        logger.info(
+            "%s attempting to extract listings from %d search pages",
+            tag,
+            len(search_page_urls),
+        )
+
+        extracted_results: list[WebScraperResult] = []
+        filtered: list[FilteredURL] = []
+
+        for page_url in search_page_urls[:5]:  # limit to 5 pages
+            try:
+                raw = await self._fetch_tool.ainvoke(page_url)
+                html = str(raw)
+                listing_urls = extract_job_urls_from_html(html)
+                logger.info(
+                    "%s extracted %d listing URLs from %s",
+                    tag,
+                    len(listing_urls),
+                    page_url,
+                )
+                for url in listing_urls:
+                    if url in seen_urls:
+                        filtered.append(FilteredURL(url=url, reason="duplicate URL"))
+                        continue
+                    seen_urls.add(url)
+                    extracted_results.append(
+                        WebScraperResult(
+                            title="",
+                            url=url,
+                            snippet="Extracted from search page",
+                            source="LinkedIn",
+                        )
+                    )
+            except Exception:
+                logger.exception("%s failed to fetch search page: %s", tag, page_url)
+
+        if extracted_results:
+            # Validate extracted URLs via fetch
+            valid, rejected = await self._validate_urls(extracted_results, category)
+            filtered.extend(rejected)
+            logger.info(
+                "%s search page extraction: %d valid, %d rejected",
+                tag,
+                len(valid),
+                len(filtered),
+            )
+            return valid, filtered
+
+        return extracted_results, filtered
 
     # ------------------------------------------------------------------
     # Helper: assemble the final output dict
@@ -750,6 +828,20 @@ class WebScraperAgent(LLMAgent):
             unique_results = validated
             all_filtered.extend(rejected)
 
+            # Fallback: extract listing URLs from filtered search pages
+            if not unique_results and category == "job" and self._fetch_tool:
+                search_page_urls = [
+                    f.url
+                    for f in all_filtered
+                    if any(p in f.url.lower() for p in _DIRECTORY_PATTERNS.get("job", []))
+                ]
+                if search_page_urls:
+                    extracted, new_filtered = await self._extract_from_search_pages(
+                        search_page_urls, seen_urls, category
+                    )
+                    unique_results.extend(extracted)
+                    all_filtered.extend(new_filtered)
+
             # min_results enforcement
             (
                 unique_results,
@@ -839,3 +931,29 @@ def _check_fetched_content(category: str, raw: Any) -> str:
             return phrase
 
     return ""
+
+
+# Regex patterns for extracting individual job listing URLs from HTML
+_JOB_LISTING_URL_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r'https?://(?:www\.)?linkedin\.com/jobs/view/[a-zA-Z0-9-]+/?(?:\?[^"\s<]*)?'),
+    re.compile(r'https?://(?:www\.)?indeed\.com/viewjob\?[^"\s<]+'),
+    re.compile(r'https?://(?:www\.)?glassdoor\.com/job-listing/[^"\s<]+'),
+]
+
+
+def extract_job_urls_from_html(html: str) -> list[str]:
+    """Extract individual job listing URLs from raw HTML content.
+
+    Searches for known job board URL patterns (LinkedIn /jobs/view/,
+    Indeed /viewjob, Glassdoor /job-listing/) in the HTML and returns
+    deduplicated URLs.
+    """
+    urls: list[str] = []
+    seen: set[str] = set()
+    for pattern in _JOB_LISTING_URL_PATTERNS:
+        for match in pattern.finditer(html):
+            url = match.group(0).rstrip("/")
+            if url not in seen:
+                seen.add(url)
+                urls.append(url)
+    return urls
