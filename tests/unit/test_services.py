@@ -291,7 +291,6 @@ class TestParseProfileHelpers:
 
 class TestParseJsonList:
     def test_parses_valid_list(self):
-        from app.services.run_service import _parse_json_list
 
         profile = _make_profile(preferred_title="A")
         assert profile.preferred_title == "A"
