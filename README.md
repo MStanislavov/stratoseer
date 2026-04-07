@@ -393,7 +393,7 @@ The entire system relies on LLM-generated search directives, web scraping, and A
 
 ### System overview
 
-<img src="docs/arch-snapshot.png" width="850" alt="Architecture overview" />
+<img src="docs/architecture/arch-snapshot.png" width="850" alt="Architecture overview" />
 
 ---
 
