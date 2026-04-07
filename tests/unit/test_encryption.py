@@ -1,7 +1,8 @@
 """Tests for Fernet-based API key encryption."""
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from app.auth.encryption import decrypt_api_key, encrypt_api_key
 

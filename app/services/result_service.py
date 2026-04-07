@@ -22,20 +22,23 @@ async def list_jobs(
     db: AsyncSession, profile_id: str, run_id: str | None = None
 ) -> list[JobOpportunityRead]:
     """List job opportunities for a profile, optionally filtered by run."""
-    stmt = (
-        select(JobOpportunity)
-        .where(JobOpportunity.profile_id == profile_id)
-    )
+    stmt = select(JobOpportunity).where(JobOpportunity.profile_id == profile_id)
     if run_id is not None:
         stmt = stmt.where(JobOpportunity.run_id == run_id)
     stmt = stmt.order_by(JobOpportunity.created_at.desc())
     result = await db.execute(stmt)
     return [
         JobOpportunityRead(
-            id=r.id, profile_id=r.profile_id, run_id=r.run_id,
-            title=r.title, company=r.company, url=r.url,
-            description=r.description, location=r.location,
-            salary_range=r.salary_range, source_query=r.source_query,
+            id=r.id,
+            profile_id=r.profile_id,
+            run_id=r.run_id,
+            title=r.title,
+            company=r.company,
+            url=r.url,
+            description=r.description,
+            location=r.location,
+            salary_range=r.salary_range,
+            source_query=r.source_query,
             created_at=r.created_at,
         )
         for r in result.scalars().all()
@@ -46,19 +49,22 @@ async def list_certifications(
     db: AsyncSession, profile_id: str, run_id: str | None = None
 ) -> list[CertificationRead]:
     """List certifications for a profile, optionally filtered by run."""
-    stmt = (
-        select(Certification)
-        .where(Certification.profile_id == profile_id)
-    )
+    stmt = select(Certification).where(Certification.profile_id == profile_id)
     if run_id is not None:
         stmt = stmt.where(Certification.run_id == run_id)
     stmt = stmt.order_by(Certification.created_at.desc())
     result = await db.execute(stmt)
     return [
         CertificationRead(
-            id=r.id, profile_id=r.profile_id, run_id=r.run_id,
-            title=r.title, provider=r.provider, url=r.url,
-            description=r.description, cost=r.cost, duration=r.duration,
+            id=r.id,
+            profile_id=r.profile_id,
+            run_id=r.run_id,
+            title=r.title,
+            provider=r.provider,
+            url=r.url,
+            description=r.description,
+            cost=r.cost,
+            duration=r.duration,
             created_at=r.created_at,
         )
         for r in result.scalars().all()
@@ -69,19 +75,22 @@ async def list_courses(
     db: AsyncSession, profile_id: str, run_id: str | None = None
 ) -> list[CourseRead]:
     """List courses for a profile, optionally filtered by run."""
-    stmt = (
-        select(Course)
-        .where(Course.profile_id == profile_id)
-    )
+    stmt = select(Course).where(Course.profile_id == profile_id)
     if run_id is not None:
         stmt = stmt.where(Course.run_id == run_id)
     stmt = stmt.order_by(Course.created_at.desc())
     result = await db.execute(stmt)
     return [
         CourseRead(
-            id=r.id, profile_id=r.profile_id, run_id=r.run_id,
-            title=r.title, platform=r.platform, url=r.url,
-            description=r.description, cost=r.cost, duration=r.duration,
+            id=r.id,
+            profile_id=r.profile_id,
+            run_id=r.run_id,
+            title=r.title,
+            platform=r.platform,
+            url=r.url,
+            description=r.description,
+            cost=r.cost,
+            duration=r.duration,
             created_at=r.created_at,
         )
         for r in result.scalars().all()
@@ -92,20 +101,23 @@ async def list_events(
     db: AsyncSession, profile_id: str, run_id: str | None = None
 ) -> list[EventRead]:
     """List events for a profile, optionally filtered by run."""
-    stmt = (
-        select(Event)
-        .where(Event.profile_id == profile_id)
-    )
+    stmt = select(Event).where(Event.profile_id == profile_id)
     if run_id is not None:
         stmt = stmt.where(Event.run_id == run_id)
     stmt = stmt.order_by(Event.created_at.desc())
     result = await db.execute(stmt)
     return [
         EventRead(
-            id=r.id, profile_id=r.profile_id, run_id=r.run_id,
-            title=r.title, organizer=r.organizer, url=r.url,
-            description=r.description, event_date=r.event_date,
-            location=r.location, created_at=r.created_at,
+            id=r.id,
+            profile_id=r.profile_id,
+            run_id=r.run_id,
+            title=r.title,
+            organizer=r.organizer,
+            url=r.url,
+            description=r.description,
+            event_date=r.event_date,
+            location=r.location,
+            created_at=r.created_at,
         )
         for r in result.scalars().all()
     ]
@@ -115,19 +127,21 @@ async def list_groups(
     db: AsyncSession, profile_id: str, run_id: str | None = None
 ) -> list[GroupRead]:
     """List groups for a profile, optionally filtered by run."""
-    stmt = (
-        select(Group)
-        .where(Group.profile_id == profile_id)
-    )
+    stmt = select(Group).where(Group.profile_id == profile_id)
     if run_id is not None:
         stmt = stmt.where(Group.run_id == run_id)
     stmt = stmt.order_by(Group.created_at.desc())
     result = await db.execute(stmt)
     return [
         GroupRead(
-            id=r.id, profile_id=r.profile_id, run_id=r.run_id,
-            title=r.title, platform=r.platform, url=r.url,
-            description=r.description, member_count=r.member_count,
+            id=r.id,
+            profile_id=r.profile_id,
+            run_id=r.run_id,
+            title=r.title,
+            platform=r.platform,
+            url=r.url,
+            description=r.description,
+            member_count=r.member_count,
             created_at=r.created_at,
         )
         for r in result.scalars().all()
@@ -138,20 +152,23 @@ async def list_trends(
     db: AsyncSession, profile_id: str, run_id: str | None = None
 ) -> list[TrendRead]:
     """List trends for a profile, optionally filtered by run."""
-    stmt = (
-        select(Trend)
-        .where(Trend.profile_id == profile_id)
-    )
+    stmt = select(Trend).where(Trend.profile_id == profile_id)
     if run_id is not None:
         stmt = stmt.where(Trend.run_id == run_id)
     stmt = stmt.order_by(Trend.created_at.desc())
     result = await db.execute(stmt)
     return [
         TrendRead(
-            id=r.id, profile_id=r.profile_id, run_id=r.run_id,
-            title=r.title, category=r.category, url=r.url,
-            description=r.description, relevance=r.relevance,
-            source=r.source, created_at=r.created_at,
+            id=r.id,
+            profile_id=r.profile_id,
+            run_id=r.run_id,
+            title=r.title,
+            category=r.category,
+            url=r.url,
+            description=r.description,
+            relevance=r.relevance,
+            source=r.source,
+            created_at=r.created_at,
         )
         for r in result.scalars().all()
     ]
@@ -162,9 +179,7 @@ async def list_trends(
 
 async def _get_by_id(db: AsyncSession, model_cls, profile_id: str, item_id: str):
     result = await db.execute(
-        select(model_cls).where(
-            model_cls.id == item_id, model_cls.profile_id == profile_id
-        )
+        select(model_cls).where(model_cls.id == item_id, model_cls.profile_id == profile_id)
     )
     return result.scalar_one_or_none()
 
@@ -182,9 +197,7 @@ async def update_result_title(
     return item
 
 
-async def delete_result(
-    db: AsyncSession, model_cls, profile_id: str, item_id: str
-) -> bool:
+async def delete_result(db: AsyncSession, model_cls, profile_id: str, item_id: str) -> bool:
     """Delete a result item by ID. Returns True if deleted, False if not found."""
     item = await _get_by_id(db, model_cls, profile_id, item_id)
     if item is None:
@@ -194,9 +207,7 @@ async def delete_result(
     return True
 
 
-async def count_cover_letters_for_job(
-    db: AsyncSession, profile_id: str, job_id: str
-) -> int:
+async def count_cover_letters_for_job(db: AsyncSession, profile_id: str, job_id: str) -> int:
     """Return the number of cover letters linked to a job opportunity."""
     result = await db.execute(
         select(func.count()).where(
@@ -207,9 +218,7 @@ async def count_cover_letters_for_job(
     return result.scalar_one()
 
 
-async def delete_job_cascade(
-    db: AsyncSession, profile_id: str, job_id: str
-) -> bool:
+async def delete_job_cascade(db: AsyncSession, profile_id: str, job_id: str) -> bool:
     """Delete a job and its linked cover letters. Returns False if job not found."""
     job = await _get_by_id(db, JobOpportunity, profile_id, job_id)
     if job is None:

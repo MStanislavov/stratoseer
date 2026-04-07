@@ -1,7 +1,8 @@
 """Tests for the BYOK settings API endpoints."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock
 
 from app.models.user import User
 
@@ -135,9 +136,7 @@ async def test_encrypted_key_not_plaintext(client, admin_headers, db_session):
     # Read the user row directly
     from sqlalchemy import select
 
-    result = await db_session.execute(
-        select(User).where(User.email == "admin@test.com")
-    )
+    result = await db_session.execute(select(User).where(User.email == "admin@test.com"))
     user = result.scalar_one()
     assert user.encrypted_api_key is not None
     assert user.encrypted_api_key != plain_key

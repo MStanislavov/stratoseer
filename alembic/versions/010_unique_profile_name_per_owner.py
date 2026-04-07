@@ -5,6 +5,7 @@ Revises: f1b31de28cff
 Create Date: 2026-04-06
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -17,9 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_unique_constraint(
-        "uq_profile_owner_name", "user_profiles", ["owner_id", "name"]
-    )
+    op.create_unique_constraint("uq_profile_owner_name", "user_profiles", ["owner_id", "name"])
 
 
 def downgrade() -> None:

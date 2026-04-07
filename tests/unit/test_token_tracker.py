@@ -22,8 +22,12 @@ class TestAgentTokenUsage:
 
     def test_to_dict(self) -> None:
         usage = AgentTokenUsage(
-            agent_name="ceo", model="gpt-5.4-mini",
-            input_tokens=100, output_tokens=50, total_tokens=150, call_count=1,
+            agent_name="ceo",
+            model="gpt-5.4-mini",
+            input_tokens=100,
+            output_tokens=50,
+            total_tokens=150,
+            call_count=1,
         )
         d = usage.to_dict()
         assert d["agent_name"] == "ceo"

@@ -75,7 +75,9 @@ class VerificationError(Exception):
         self.verification = verification
         super().__init__(
             f"Verification failed for {verification.agent_name}: "
-            + ", ".join(c.message for c in verification.checks if c.status == VerificationStatus.FAIL)
+            + ", ".join(
+                c.message for c in verification.checks if c.status == VerificationStatus.FAIL
+            )
         )
 
 
@@ -85,7 +87,13 @@ class VerificationError(Exception):
 
 _ALL_CHECKS_PASSED = "All checks passed"
 
-_EXPECTED_SEARCH_PROMPT_KEYS = {"job_prompt", "cert_prompt", "event_prompt", "group_prompt", "trend_prompt"}
+_EXPECTED_SEARCH_PROMPT_KEYS = {
+    "job_prompt",
+    "cert_prompt",
+    "event_prompt",
+    "group_prompt",
+    "trend_prompt",
+}
 
 _RAW_RESULT_KEYS = [
     "raw_job_results",
@@ -112,14 +120,13 @@ class Verifier:
         """Initialize the verifier with an optional policy engine for boundary and budget checks.
 
         Args:
-            policy_engine: Policy engine used to read boundary rules and output limits. If None, defaults are used.
+            policy_engine: Policy engine used to read boundary rules
+                and output limits. If None, defaults are used.
         """
         self._policy_engine = policy_engine
         global_cfg = policy_engine.get_global_config() if policy_engine else {}
         self._max_output_items: int = global_cfg.get("max_output_items", 50)
-        self._expiry_patterns = [
-            re.compile(p, re.IGNORECASE) for p in _EXPIRY_PATTERNS
-        ]
+        self._expiry_patterns = [re.compile(p, re.IGNORECASE) for p in _EXPIRY_PATTERNS]
 
     # ------------------------------------------------------------------
     # Public API
@@ -140,7 +147,13 @@ class Verifier:
             return AgentVerification(
                 agent_name=agent_name,
                 status=VerificationStatus.PASS,
-                checks=[CheckResult("unknown_agent", VerificationStatus.PASS, f"No checks defined for {agent_name}")],
+                checks=[
+                    CheckResult(
+                        "unknown_agent",
+                        VerificationStatus.PASS,
+                        f"No checks defined for {agent_name}",
+                    )
+                ],
             )
         checks = checker(output)
         overall = self._aggregate_status(checks)
@@ -195,39 +208,54 @@ class Verifier:
 
         prompts = output.get("search_prompts")
         if not isinstance(prompts, dict):
-            checks.append(CheckResult(
-                "search_prompts_type", VerificationStatus.FAIL,
-                "search_prompts must be a dict",
-            ))
+            checks.append(
+                CheckResult(
+                    "search_prompts_type",
+                    VerificationStatus.FAIL,
+                    "search_prompts must be a dict",
+                )
+            )
             return checks
 
         # Check expected keys
         missing = _EXPECTED_SEARCH_PROMPT_KEYS - set(prompts.keys())
         if missing:
-            checks.append(CheckResult(
-                "search_prompts_keys", VerificationStatus.FAIL,
-                f"Missing prompt keys: {sorted(missing)}",
-                details={"missing": sorted(missing)},
-            ))
+            checks.append(
+                CheckResult(
+                    "search_prompts_keys",
+                    VerificationStatus.FAIL,
+                    f"Missing prompt keys: {sorted(missing)}",
+                    details={"missing": sorted(missing)},
+                )
+            )
         else:
-            checks.append(CheckResult(
-                "search_prompts_keys", VerificationStatus.PASS,
-                "All expected prompt keys present",
-            ))
+            checks.append(
+                CheckResult(
+                    "search_prompts_keys",
+                    VerificationStatus.PASS,
+                    "All expected prompt keys present",
+                )
+            )
 
         # Check non-empty values
         empty = [k for k, v in prompts.items() if not isinstance(v, str) or not v.strip()]
         if empty:
-            checks.append(CheckResult(
-                "search_prompts_values", VerificationStatus.PARTIAL,
-                f"Empty prompt values: {sorted(empty)}",
-                details={"empty_keys": sorted(empty)},
-            ))
+            checks.append(
+                CheckResult(
+                    "search_prompts_values",
+                    VerificationStatus.PARTIAL,
+                    f"Empty prompt values: {sorted(empty)}",
+                    details={"empty_keys": sorted(empty)},
+                )
+            )
         else:
-            checks.append(CheckResult(
-                "search_prompts_values", VerificationStatus.PASS,
-                "All prompt values are non-empty strings",
-            ))
+            checks.append(
+                CheckResult(
+                    "search_prompts_values",
+                    VerificationStatus.PASS,
+                    "All prompt values are non-empty strings",
+                )
+            )
 
         # Boundary compliance
         if self._policy_engine:
@@ -237,16 +265,22 @@ class Verifier:
                 actual_outputs = set(output.keys())
                 disallowed = actual_outputs - allowed_outputs - {"errors"}
                 if disallowed:
-                    checks.append(CheckResult(
-                        "boundary_compliance", VerificationStatus.FAIL,
-                        f"Output keys not in boundaries: {sorted(disallowed)}",
-                        details={"disallowed": sorted(disallowed)},
-                    ))
+                    checks.append(
+                        CheckResult(
+                            "boundary_compliance",
+                            VerificationStatus.FAIL,
+                            f"Output keys not in boundaries: {sorted(disallowed)}",
+                            details={"disallowed": sorted(disallowed)},
+                        )
+                    )
                 else:
-                    checks.append(CheckResult(
-                        "boundary_compliance", VerificationStatus.PASS,
-                        "Output keys comply with boundaries",
-                    ))
+                    checks.append(
+                        CheckResult(
+                            "boundary_compliance",
+                            VerificationStatus.PASS,
+                            "Output keys comply with boundaries",
+                        )
+                    )
             except KeyError:
                 pass
 
@@ -270,9 +304,13 @@ class Verifier:
             checks.extend(self._check_duplicate_urls(key, items))
 
         # Bounds check
-        checks.append(self._check_output_bounds(
-            total_items, "Total items", include_soft_warning=True,
-        ))
+        checks.append(
+            self._check_output_bounds(
+                total_items,
+                "Total items",
+                include_soft_warning=True,
+            )
+        )
 
         # Freshness check for job results
         job_items = output.get("raw_job_results")
@@ -280,7 +318,9 @@ class Verifier:
             checks.append(self._check_job_freshness(job_items))
 
         if not checks:
-            checks.append(CheckResult("web_scrapers_general", VerificationStatus.PASS, _ALL_CHECKS_PASSED))
+            checks.append(
+                CheckResult("web_scrapers_general", VerificationStatus.PASS, _ALL_CHECKS_PASSED)
+            )
 
         return checks
 
@@ -302,12 +342,18 @@ class Verifier:
             checks.extend(self._check_duplicate_titles(key, items))
 
         # Total bounds
-        checks.append(self._check_output_bounds(
-            total_items, "Total formatted items", include_soft_warning=False,
-        ))
+        checks.append(
+            self._check_output_bounds(
+                total_items,
+                "Total formatted items",
+                include_soft_warning=False,
+            )
+        )
 
         if not checks:
-            checks.append(CheckResult("data_formatter_general", VerificationStatus.PASS, _ALL_CHECKS_PASSED))
+            checks.append(
+                CheckResult("data_formatter_general", VerificationStatus.PASS, _ALL_CHECKS_PASSED)
+            )
 
         return checks
 
@@ -316,24 +362,33 @@ class Verifier:
 
         recs = output.get("strategic_recommendations")
         if not isinstance(recs, list):
-            checks.append(CheckResult(
-                "strategic_recommendations_type", VerificationStatus.FAIL,
-                "strategic_recommendations must be a list",
-            ))
+            checks.append(
+                CheckResult(
+                    "strategic_recommendations_type",
+                    VerificationStatus.FAIL,
+                    "strategic_recommendations must be a list",
+                )
+            )
         else:
             checks.extend(self._validate_recommendations(recs))
 
         summary = output.get("ceo_summary")
         if not isinstance(summary, str) or not summary.strip():
-            checks.append(CheckResult(
-                "ceo_summary", VerificationStatus.FAIL,
-                "ceo_summary must be a non-empty string",
-            ))
+            checks.append(
+                CheckResult(
+                    "ceo_summary",
+                    VerificationStatus.FAIL,
+                    "ceo_summary must be a non-empty string",
+                )
+            )
         else:
-            checks.append(CheckResult(
-                "ceo_summary", VerificationStatus.PASS,
-                "ceo_summary is present",
-            ))
+            checks.append(
+                CheckResult(
+                    "ceo_summary",
+                    VerificationStatus.PASS,
+                    "ceo_summary is present",
+                )
+            )
 
         if not checks:
             checks.append(CheckResult("ceo_general", VerificationStatus.PASS, _ALL_CHECKS_PASSED))
@@ -345,37 +400,52 @@ class Verifier:
 
         assessments = output.get("risk_assessments")
         if not isinstance(assessments, list):
-            checks.append(CheckResult(
-                "risk_assessments_type", VerificationStatus.FAIL,
-                "risk_assessments must be a list",
-            ))
+            checks.append(
+                CheckResult(
+                    "risk_assessments_type",
+                    VerificationStatus.FAIL,
+                    "risk_assessments must be a list",
+                )
+            )
         else:
             for i, assessment in enumerate(assessments):
                 if not isinstance(assessment, dict):
-                    checks.append(CheckResult(
-                        f"assessment_{i}_type", VerificationStatus.FAIL,
-                        f"Assessment {i} must be a dict",
-                    ))
+                    checks.append(
+                        CheckResult(
+                            f"assessment_{i}_type",
+                            VerificationStatus.FAIL,
+                            f"Assessment {i} must be a dict",
+                        )
+                    )
                     continue
                 missing = [f for f in ("area", "risk_level") if f not in assessment]
                 if missing:
-                    checks.append(CheckResult(
-                        f"assessment_{i}_fields", VerificationStatus.PARTIAL,
-                        f"Assessment {i} missing fields: {missing}",
-                        details={"index": i, "missing": missing},
-                    ))
+                    checks.append(
+                        CheckResult(
+                            f"assessment_{i}_fields",
+                            VerificationStatus.PARTIAL,
+                            f"Assessment {i} missing fields: {missing}",
+                            details={"index": i, "missing": missing},
+                        )
+                    )
 
         summary = output.get("cfo_summary")
         if not isinstance(summary, str) or not summary.strip():
-            checks.append(CheckResult(
-                "cfo_summary", VerificationStatus.FAIL,
-                "cfo_summary must be a non-empty string",
-            ))
+            checks.append(
+                CheckResult(
+                    "cfo_summary",
+                    VerificationStatus.FAIL,
+                    "cfo_summary must be a non-empty string",
+                )
+            )
         else:
-            checks.append(CheckResult(
-                "cfo_summary", VerificationStatus.PASS,
-                "cfo_summary is present",
-            ))
+            checks.append(
+                CheckResult(
+                    "cfo_summary",
+                    VerificationStatus.PASS,
+                    "cfo_summary is present",
+                )
+            )
 
         if not checks:
             checks.append(CheckResult("cfo_general", VerificationStatus.PASS, _ALL_CHECKS_PASSED))
@@ -387,30 +457,42 @@ class Verifier:
 
         content = output.get("cover_letter_content")
         if not isinstance(content, str) or not content.strip():
-            checks.append(CheckResult(
-                "cover_letter_content", VerificationStatus.FAIL,
-                "cover_letter_content must be a non-empty string",
-            ))
+            checks.append(
+                CheckResult(
+                    "cover_letter_content",
+                    VerificationStatus.FAIL,
+                    "cover_letter_content must be a non-empty string",
+                )
+            )
             return checks
 
         length = len(content)
         if length < 100:
-            checks.append(CheckResult(
-                "cover_letter_length_min", VerificationStatus.PARTIAL,
-                f"Cover letter is short ({length} chars, expected >= 100)",
-                details={"length": length},
-            ))
+            checks.append(
+                CheckResult(
+                    "cover_letter_length_min",
+                    VerificationStatus.PARTIAL,
+                    f"Cover letter is short ({length} chars, expected >= 100)",
+                    details={"length": length},
+                )
+            )
         elif length > 10000:
-            checks.append(CheckResult(
-                "cover_letter_length_max", VerificationStatus.FAIL,
-                f"Cover letter is too long ({length} chars, max 10000)",
-                details={"length": length},
-            ))
+            checks.append(
+                CheckResult(
+                    "cover_letter_length_max",
+                    VerificationStatus.FAIL,
+                    f"Cover letter is too long ({length} chars, max 10000)",
+                    details={"length": length},
+                )
+            )
         else:
-            checks.append(CheckResult(
-                "cover_letter_length", VerificationStatus.PASS,
-                f"Cover letter length ({length} chars) within bounds",
-            ))
+            checks.append(
+                CheckResult(
+                    "cover_letter_length",
+                    VerificationStatus.PASS,
+                    f"Cover letter length ({length} chars) within bounds",
+                )
+            )
 
         return checks
 
@@ -420,10 +502,12 @@ class Verifier:
         for i, item in enumerate(items):
             if not isinstance(item, dict):
                 continue
-            text = " ".join([
-                item.get("title", ""),
-                item.get("snippet", ""),
-            ])
+            text = " ".join(
+                [
+                    item.get("title", ""),
+                    item.get("snippet", ""),
+                ]
+            )
             if any(p.search(text) for p in self._expiry_patterns):
                 flagged.append(i)
 
@@ -453,37 +537,47 @@ class Verifier:
         """
         checks: list[CheckResult] = []
         if not isinstance(items, list):
-            checks.append(CheckResult(
-                f"{key}_type", VerificationStatus.FAIL,
-                f"{key} must be a list, got {type(items).__name__}",
-            ))
+            checks.append(
+                CheckResult(
+                    f"{key}_type",
+                    VerificationStatus.FAIL,
+                    f"{key} must be a list, got {type(items).__name__}",
+                )
+            )
             return False, checks
 
         for item in items:
             if not isinstance(item, dict):
-                checks.append(CheckResult(
-                    f"{key}_item_type", VerificationStatus.FAIL,
-                    f"Items in {key} must be dicts",
-                ))
+                checks.append(
+                    CheckResult(
+                        f"{key}_item_type",
+                        VerificationStatus.FAIL,
+                        f"Items in {key} must be dicts",
+                    )
+                )
                 break
 
         return True, checks
 
     @staticmethod
     def _check_missing_titles(
-        key: str, items: list[dict[str, Any]], severity: VerificationStatus,
+        key: str,
+        items: list[dict[str, Any]],
+        severity: VerificationStatus,
     ) -> list[CheckResult]:
         """Return a check if any dict item in *items* is missing a title."""
         missing_title = [
-            i for i, item in enumerate(items)
-            if isinstance(item, dict) and not item.get("title")
+            i for i, item in enumerate(items) if isinstance(item, dict) and not item.get("title")
         ]
         if missing_title:
-            return [CheckResult(
-                f"{key}_titles", severity,
-                f"{len(missing_title)} item(s) in {key} missing title",
-                details={"indices": missing_title},
-            )]
+            return [
+                CheckResult(
+                    f"{key}_titles",
+                    severity,
+                    f"{len(missing_title)} item(s) in {key} missing title",
+                    details={"indices": missing_title},
+                )
+            ]
         return []
 
     @staticmethod
@@ -492,11 +586,14 @@ class Verifier:
         urls = [item.get("url") for item in items if isinstance(item, dict) and item.get("url")]
         dups = [u for u in set(urls) if urls.count(u) > 1]
         if dups:
-            return [CheckResult(
-                f"{key}_dedup", VerificationStatus.PARTIAL,
-                f"Duplicate URLs in {key}: {len(dups)} unique duplicates",
-                details={"duplicate_urls": dups},
-            )]
+            return [
+                CheckResult(
+                    f"{key}_dedup",
+                    VerificationStatus.PARTIAL,
+                    f"Duplicate URLs in {key}: {len(dups)} unique duplicates",
+                    details={"duplicate_urls": dups},
+                )
+            ]
         return []
 
     @staticmethod
@@ -506,6 +603,7 @@ class Verifier:
         Two items with the same title but different company/provider/platform
         are NOT duplicates (e.g. "Software Engineer III" at two companies).
         """
+
         def _dedup_key(item: dict[str, Any]) -> str:
             title = item.get("title", "")
             for attr in ("company", "provider", "platform", "organizer", "url"):
@@ -518,15 +616,22 @@ class Verifier:
         dup_keys = [k for k in set(keys) if keys.count(k) > 1]
         if dup_keys:
             dup_titles = [k.split("||")[0] for k in dup_keys]
-            return [CheckResult(
-                f"{key}_dedup", VerificationStatus.PARTIAL,
-                f"Duplicate titles in {key}: {len(dup_keys)} unique duplicates",
-                details={"duplicate_titles": dup_titles},
-            )]
+            return [
+                CheckResult(
+                    f"{key}_dedup",
+                    VerificationStatus.PARTIAL,
+                    f"Duplicate titles in {key}: {len(dup_keys)} unique duplicates",
+                    details={"duplicate_titles": dup_titles},
+                )
+            ]
         return []
 
     def _check_output_bounds(
-        self, total_items: int, label: str, *, include_soft_warning: bool,
+        self,
+        total_items: int,
+        label: str,
+        *,
+        include_soft_warning: bool,
     ) -> CheckResult:
         """Return a single bounds check for *total_items* against the policy limit.
 
@@ -537,19 +642,23 @@ class Verifier:
         limit = self._max_output_items
         if total_items > limit * 2:
             return CheckResult(
-                "output_bounds", VerificationStatus.FAIL,
+                "output_bounds",
+                VerificationStatus.FAIL,
                 f"{label} ({total_items}) exceeds 2x limit ({limit * 2})",
                 details={"total": total_items, "limit": limit},
             )
         if include_soft_warning and total_items > limit:
             return CheckResult(
-                "output_bounds", VerificationStatus.PARTIAL,
+                "output_bounds",
+                VerificationStatus.PARTIAL,
                 f"{label} ({total_items}) exceeds limit ({limit})",
                 details={"total": total_items, "limit": limit},
             )
         return CheckResult(
-            "output_bounds", VerificationStatus.PASS,
-            f"{label} ({total_items}) within limit" + (f" ({limit})" if include_soft_warning else ""),
+            "output_bounds",
+            VerificationStatus.PASS,
+            f"{label} ({total_items}) within limit"
+            + (f" ({limit})" if include_soft_warning else ""),
         )
 
     @staticmethod
@@ -558,25 +667,34 @@ class Verifier:
         checks: list[CheckResult] = []
         for i, rec in enumerate(recs):
             if not isinstance(rec, dict):
-                checks.append(CheckResult(
-                    f"recommendation_{i}_type", VerificationStatus.FAIL,
-                    f"Recommendation {i} must be a dict",
-                ))
+                checks.append(
+                    CheckResult(
+                        f"recommendation_{i}_type",
+                        VerificationStatus.FAIL,
+                        f"Recommendation {i} must be a dict",
+                    )
+                )
                 continue
             missing = [f for f in ("area", "recommendation", "priority") if f not in rec]
             if missing:
-                checks.append(CheckResult(
-                    f"recommendation_{i}_fields", VerificationStatus.PARTIAL,
-                    f"Recommendation {i} missing fields: {missing}",
-                    details={"index": i, "missing": missing},
-                ))
+                checks.append(
+                    CheckResult(
+                        f"recommendation_{i}_fields",
+                        VerificationStatus.PARTIAL,
+                        f"Recommendation {i} missing fields: {missing}",
+                        details={"index": i, "missing": missing},
+                    )
+                )
             priority = rec.get("priority", "")
             if isinstance(priority, str) and priority not in ("high", "medium", "low"):
-                checks.append(CheckResult(
-                    f"recommendation_{i}_priority", VerificationStatus.PARTIAL,
-                    f"Recommendation {i} has invalid priority: '{priority}'",
-                    details={"index": i, "priority": priority},
-                ))
+                checks.append(
+                    CheckResult(
+                        f"recommendation_{i}_priority",
+                        VerificationStatus.PARTIAL,
+                        f"Recommendation {i} has invalid priority: '{priority}'",
+                        details={"index": i, "priority": priority},
+                    )
+                )
         return checks
 
     # ------------------------------------------------------------------

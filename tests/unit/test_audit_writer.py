@@ -10,7 +10,6 @@ import yaml
 from app.engine.audit_writer import AuditEvent, AuditWriter
 from app.engine.policy_engine import PolicyEngine
 
-
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------

@@ -1,4 +1,4 @@
-"""Authentication endpoints: register, login, refresh, logout, Google OAuth, email verify, password reset."""
+"""Auth endpoints: register, login, refresh, logout, Google OAuth, email verify, password reset."""
 
 from typing import Annotated
 

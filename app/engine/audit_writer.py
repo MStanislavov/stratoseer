@@ -18,7 +18,9 @@ class AuditEvent:
     """A single event in the audit trail."""
 
     timestamp: str
-    event_type: str  # agent_start, agent_end, tool_call, tool_response, output, verifier_result, error
+    event_type: (
+        str  # agent_start, agent_end, tool_call, tool_response, output, verifier_result, error
+    )
     agent: str | None = None
     node_type: str | None = None  # "agent" or "static_validator"
     data: dict[str, Any] | None = None
@@ -39,7 +41,8 @@ class AuditWriter:
         """Initialize the audit writer with an optional policy engine for PII redaction.
 
         Args:
-            policy_engine: Policy engine used to apply redaction rules. If None, no redaction is applied.
+            policy_engine: Policy engine used to apply redaction rules.
+                If None, no redaction is applied.
         """
         self._policy_engine = policy_engine
 
@@ -66,8 +69,9 @@ class AuditWriter:
 
         async with async_session_factory() as session:
             next_seq = await session.scalar(
-                select(func.coalesce(func.max(AuditEventRecord.sequence), 0))
-                .where(AuditEventRecord.run_id == run_id)
+                select(func.coalesce(func.max(AuditEventRecord.sequence), 0)).where(
+                    AuditEventRecord.run_id == run_id
+                )
             )
             record = AuditEventRecord(
                 run_id=run_id,
@@ -136,9 +140,7 @@ class AuditWriter:
         from app.models.run_bundle import RunBundle
 
         async with async_session_factory() as session:
-            result = await session.execute(
-                select(RunBundle.data).where(RunBundle.run_id == run_id)
-            )
+            result = await session.execute(select(RunBundle.data).where(RunBundle.run_id == run_id))
             row = result.scalar_one_or_none()
         if row is None:
             return None

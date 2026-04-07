@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -153,9 +152,7 @@ class TestCorsOriginsExtension:
             origins = ["http://localhost:5173", mock_settings.app_base_url]
             if mock_settings.cors_origins:
                 origins.extend(
-                    o.strip()
-                    for o in mock_settings.cors_origins.split(",")
-                    if o.strip()
+                    o.strip() for o in mock_settings.cors_origins.split(",") if o.strip()
                 )
 
             assert "https://example.com" in origins
@@ -172,6 +169,7 @@ class TestVerifierEdgeCases:
 
     def _make_verifier(self):
         from app.engine.verifier import Verifier
+
         return Verifier()
 
     def _make_verifier_with_boundary_keyerror(self, tmp_path):
@@ -180,7 +178,9 @@ class TestVerifierEdgeCases:
         policy_dir.mkdir()
         (policy_dir / "budgets.yaml").write_text("global:\n  max_output_items: 50\n")
         # boundaries.yaml exists but does NOT define goal_extractor
-        (policy_dir / "boundaries.yaml").write_text("agents:\n  other_agent:\n    inputs: [x]\n    outputs: [y]\n")
+        (policy_dir / "boundaries.yaml").write_text(
+            "agents:\n  other_agent:\n    inputs: [x]\n    outputs: [y]\n"
+        )
         from app.engine.policy_engine import PolicyEngine
         from app.engine.verifier import Verifier
 
@@ -202,6 +202,7 @@ class TestVerifierEdgeCases:
         result = verifier.verify("goal_extractor", output)
         # Should pass without boundary check (KeyError caught)
         from app.engine.verifier import VerificationStatus
+
         assert result.status == VerificationStatus.PASS
         # No boundary_compliance check should be present
         check_names = [c.check_name for c in result.checks]
@@ -213,6 +214,7 @@ class TestVerifierEdgeCases:
         # Pass empty dict -- no raw result keys present at all
         result = verifier.verify("web_scrapers", {})
         from app.engine.verifier import VerificationStatus
+
         assert result.status == VerificationStatus.PASS
         check_names = [c.check_name for c in result.checks]
         # The bounds check always fires, but there is no data
@@ -223,6 +225,7 @@ class TestVerifierEdgeCases:
         verifier = self._make_verifier()
         result = verifier.verify("data_formatter", {})
         from app.engine.verifier import VerificationStatus
+
         assert result.status == VerificationStatus.PASS
 
     def test_ceo_empty_output_general_pass(self):
@@ -239,16 +242,21 @@ class TestVerifierEdgeCases:
         # recs/summary always append. Test the closest path.
         result = verifier.verify("ceo", {})
         from app.engine.verifier import VerificationStatus
+
         assert result.status == VerificationStatus.FAIL
 
     def test_cfo_assessment_not_dict(self):
         """Lines 345-349: CFO assessment that is not a dict."""
         verifier = self._make_verifier()
         from app.engine.verifier import VerificationStatus
-        result = verifier.verify("cfo", {
-            "risk_assessments": ["not-a-dict", 42],
-            "cfo_summary": "summary text",
-        })
+
+        result = verifier.verify(
+            "cfo",
+            {
+                "risk_assessments": ["not-a-dict", 42],
+                "cfo_summary": "summary text",
+            },
+        )
         assert any("must be a dict" in c.message for c in result.checks)
         assert result.status == VerificationStatus.FAIL
 
@@ -256,6 +264,7 @@ class TestVerifierEdgeCases:
         """Line 371: CFO with no risk_assessments and no summary."""
         verifier = self._make_verifier()
         from app.engine.verifier import VerificationStatus
+
         result = verifier.verify("cfo", {})
         assert result.status == VerificationStatus.FAIL
 
@@ -263,6 +272,7 @@ class TestVerifierEdgeCases:
         """Lines 538-542: cover_letter with no content -> fail, not general pass."""
         verifier = self._make_verifier()
         from app.engine.verifier import VerificationStatus
+
         result = verifier.verify("cover_letter_agent", {})
         assert result.status == VerificationStatus.FAIL
 
@@ -277,8 +287,8 @@ class TestDailyAuditNodeWithVerifierResults:
 
     async def test_audit_node_builds_verifier_report(self):
         """Verify the daily audit node constructs a verifier report from stored results."""
-        from app.graphs.daily import _make_audit_node
         from app.engine.verifier import Verifier
+        from app.graphs.daily import _make_audit_node
 
         mock_audit_writer = AsyncMock()
         mock_audit_writer.append = AsyncMock()
@@ -334,8 +344,8 @@ class TestWeeklyAuditNodeWithVerifierResults:
 
     async def test_audit_node_builds_verifier_report(self):
         """Verify the weekly audit node constructs a verifier report from stored results."""
-        from app.graphs.weekly import _make_audit_node
         from app.engine.verifier import Verifier
+        from app.graphs.weekly import _make_audit_node
 
         mock_audit_writer = AsyncMock()
         mock_audit_writer.append = AsyncMock()
@@ -435,10 +445,12 @@ class TestFanOutNodeAuditAppend:
         """Verify fan-out node writes audit events when audit_writer is provided."""
         from app.graphs.log import make_fan_out_node
 
-        mock_scraper = AsyncMock(return_value={
-            "raw_job_results": [{"title": "Job"}],
-            "errors": [],
-        })
+        mock_scraper = AsyncMock(
+            return_value={
+                "raw_job_results": [{"title": "Job"}],
+                "errors": [],
+            }
+        )
         mock_audit_writer = AsyncMock()
         mock_audit_writer.append = AsyncMock()
 
@@ -489,8 +501,10 @@ class TestRegisterRequestPasswordValidation:
 
         with pytest.raises(ValidationError, match="uppercase"):
             RegisterRequest(
-                first_name="A", last_name="B",
-                email="a@b.com", password="nouppercase1",
+                first_name="A",
+                last_name="B",
+                email="a@b.com",
+                password="nouppercase1",
             )
 
     def test_missing_lowercase(self):
@@ -499,8 +513,10 @@ class TestRegisterRequestPasswordValidation:
 
         with pytest.raises(ValidationError, match="lowercase"):
             RegisterRequest(
-                first_name="A", last_name="B",
-                email="a@b.com", password="NOLOWERCASE1",
+                first_name="A",
+                last_name="B",
+                email="a@b.com",
+                password="NOLOWERCASE1",
             )
 
     def test_missing_digit(self):
@@ -509,8 +525,10 @@ class TestRegisterRequestPasswordValidation:
 
         with pytest.raises(ValidationError, match="digit"):
             RegisterRequest(
-                first_name="A", last_name="B",
-                email="a@b.com", password="NoDigitHere",
+                first_name="A",
+                last_name="B",
+                email="a@b.com",
+                password="NoDigitHere",
             )
 
 
@@ -594,8 +612,8 @@ class TestGetUserApiKey:
 
     def test_returns_decrypted_key(self):
         """Verify get_user_api_key decrypts and returns the stored API key."""
-        from app.services.api_key_service import get_user_api_key
         from app.auth.encryption import encrypt_api_key
+        from app.services.api_key_service import get_user_api_key
 
         user = MagicMock()
         user.encrypted_api_key = encrypt_api_key("sk-test-key-12345")
@@ -659,6 +677,7 @@ class TestDecodeToken:
     def test_decode_invalid_token_raises(self):
         """Verify decode_token raises JWTError for an invalid token string."""
         from jose import JWTError
+
         from app.auth.jwt import decode_token
 
         with pytest.raises(JWTError):
@@ -780,37 +799,46 @@ class TestVerifierGeneralPassPaths:
 
     def test_cover_letter_valid_content_passes(self):
         """A valid cover letter should pass all checks."""
-        from app.engine.verifier import Verifier, VerificationStatus
+        from app.engine.verifier import VerificationStatus, Verifier
 
         verifier = Verifier()
-        result = verifier.verify("cover_letter_agent", {
-            "cover_letter_content": "A" * 500,
-        })
+        result = verifier.verify(
+            "cover_letter_agent",
+            {
+                "cover_letter_content": "A" * 500,
+            },
+        )
         assert result.status == VerificationStatus.PASS
         assert any(c.check_name == "cover_letter_length" for c in result.checks)
 
     def test_cfo_valid_output_passes_all(self):
         """CFO with valid assessments and summary -- all checks pass."""
-        from app.engine.verifier import Verifier, VerificationStatus
+        from app.engine.verifier import VerificationStatus, Verifier
 
         verifier = Verifier()
-        result = verifier.verify("cfo", {
-            "risk_assessments": [
-                {"area": "Market", "risk_level": "low"},
-            ],
-            "cfo_summary": "Everything looks good.",
-        })
+        result = verifier.verify(
+            "cfo",
+            {
+                "risk_assessments": [
+                    {"area": "Market", "risk_level": "low"},
+                ],
+                "cfo_summary": "Everything looks good.",
+            },
+        )
         assert result.status == VerificationStatus.PASS
 
     def test_ceo_valid_output_passes_all(self):
         """CEO with valid recommendations and summary -- all checks pass."""
-        from app.engine.verifier import Verifier, VerificationStatus
+        from app.engine.verifier import VerificationStatus, Verifier
 
         verifier = Verifier()
-        result = verifier.verify("ceo", {
-            "strategic_recommendations": [
-                {"area": "Cloud", "recommendation": "Invest in AWS", "priority": "high"},
-            ],
-            "ceo_summary": "Strategic outlook is positive.",
-        })
+        result = verifier.verify(
+            "ceo",
+            {
+                "strategic_recommendations": [
+                    {"area": "Cloud", "recommendation": "Invest in AWS", "priority": "high"},
+                ],
+                "ceo_summary": "Strategic outlook is positive.",
+            },
+        )
         assert result.status == VerificationStatus.PASS

@@ -56,7 +56,9 @@ def agent_result(
 ) -> None:
     """Log an individual agent's return with elapsed time."""
     extra = " ".join(f"{k}={v}" for k, v in kw.items())
-    logger.debug("[%s:%s]   %s returned %.2fs %s", pipeline, _rid(state), agent_name, elapsed, extra)
+    logger.debug(
+        "[%s:%s]   %s returned %.2fs %s", pipeline, _rid(state), agent_name, elapsed, extra
+    )
 
 
 def route(pipeline: str, state: dict[str, Any], dest: str, **kw: Any) -> None:
@@ -159,21 +161,27 @@ async def _write_audit_end(
     """Write the agent-end and optional verifier-result audit events."""
     if not audit_writer:
         return
-    await audit_writer.append(run_id, AuditEvent(
-        timestamp=now(),
-        event_type=evt_end,
-        agent=agent_name,
-        node_type=node_type,
-        data=data,
-    ))
-    if verification_dict:
-        await audit_writer.append(run_id, AuditEvent(
+    await audit_writer.append(
+        run_id,
+        AuditEvent(
             timestamp=now(),
-            event_type="verifier_result",
+            event_type=evt_end,
             agent=agent_name,
             node_type=node_type,
-            data=verification_dict,
-        ))
+            data=data,
+        ),
+    )
+    if verification_dict:
+        await audit_writer.append(
+            run_id,
+            AuditEvent(
+                timestamp=now(),
+                event_type="verifier_result",
+                agent=agent_name,
+                node_type=node_type,
+                data=verification_dict,
+            ),
+        )
 
 
 def _accumulate_verifier_results(
@@ -247,23 +255,30 @@ def make_node(
         now = datetime.now(timezone.utc).isoformat
 
         # SSE: started
-        await _publish_sse(event_manager, run_id, {
-            "type": sse_started,
-            "agent": agent_name,
-            "node_type": node_type,
-            "timestamp": now(),
-        })
+        await _publish_sse(
+            event_manager,
+            run_id,
+            {
+                "type": sse_started,
+                "agent": agent_name,
+                "node_type": node_type,
+                "timestamp": now(),
+            },
+        )
 
         node_start(pipeline, state, agent_name)
 
         # Audit: start
         if audit_writer:
-            await audit_writer.append(run_id, AuditEvent(
-                timestamp=now(),
-                event_type=evt_start,
-                agent=agent_name,
-                node_type=node_type,
-            ))
+            await audit_writer.append(
+                run_id,
+                AuditEvent(
+                    timestamp=now(),
+                    event_type=evt_start,
+                    agent=agent_name,
+                    node_type=node_type,
+                ),
+            )
 
         t0 = time.monotonic()
         result = await call_agent(agent, state)
@@ -275,24 +290,36 @@ def make_node(
 
         # Verify
         verification_dict, verification_status = _build_verification_dict(
-            verifier, agent_name, result,
+            verifier,
+            agent_name,
+            result,
         )
 
         # Audit: end + verifier
         await _write_audit_end(
-            audit_writer, run_id, now, evt_end,
-            agent_name, node_type, result, verification_dict,
+            audit_writer,
+            run_id,
+            now,
+            evt_end,
+            agent_name,
+            node_type,
+            result,
+            verification_dict,
         )
 
         # SSE: completed
-        await _publish_sse(event_manager, run_id, {
-            "type": sse_completed,
-            "agent": agent_name,
-            "node_type": node_type,
-            "verification_status": verification_status,
-            "elapsed": round(elapsed, 2),
-            "timestamp": now(),
-        })
+        await _publish_sse(
+            event_manager,
+            run_id,
+            {
+                "type": sse_completed,
+                "agent": agent_name,
+                "node_type": node_type,
+                "verification_status": verification_status,
+                "elapsed": round(elapsed, 2),
+                "timestamp": now(),
+            },
+        )
 
         # Accumulate verifier results
         _accumulate_verifier_results(state, result, verification_dict)
@@ -333,22 +360,29 @@ def make_fan_out_node(
         now = datetime.now(timezone.utc).isoformat
 
         # SSE: agent started
-        await _publish_sse(event_manager, run_id, {
-            "type": "agent_started",
-            "agent": agent_name,
-            "timestamp": now(),
-        })
+        await _publish_sse(
+            event_manager,
+            run_id,
+            {
+                "type": "agent_started",
+                "agent": agent_name,
+                "timestamp": now(),
+            },
+        )
 
         node_start(pipeline, state, agent_name, prompts=len(prompts))
 
         # Audit: agent start
         if audit_writer:
-            await audit_writer.append(run_id, AuditEvent(
-                timestamp=now(),
-                event_type="agent_start",
-                agent=agent_name,
-                data={"prompts": prompts},
-            ))
+            await audit_writer.append(
+                run_id,
+                AuditEvent(
+                    timestamp=now(),
+                    event_type="agent_start",
+                    agent=agent_name,
+                    data={"prompts": prompts},
+                ),
+            )
 
         t0 = time.monotonic()
 
@@ -361,15 +395,15 @@ def make_fan_out_node(
             }
             return await call_agent(agent, search_state)
 
-        returns = await asyncio.gather(
-            *[_run_scraper(cat, pk) for cat, pk in categories]
-        )
+        returns = await asyncio.gather(*[_run_scraper(cat, pk) for cat, pk in categories])
 
         all_errors: list[str] = []
         results: dict[str, Any] = {}
         for (category, _), ret in zip(categories, returns):
             await _record_token_usage(
-                token_tracker, f"{agent_name}/{category}", ret,
+                token_tracker,
+                f"{agent_name}/{category}",
+                ret,
             )
             result_key = f"raw_{category}_results"
             results[result_key] = ret.get(result_key, [])
@@ -381,29 +415,44 @@ def make_fan_out_node(
         elapsed = time.monotonic() - t0
 
         node_end(
-            pipeline, state, agent_name, elapsed,
+            pipeline,
+            state,
+            agent_name,
+            elapsed,
             **{cat: len(results.get(f"raw_{cat}_results", [])) for cat, _ in categories},
         )
 
         # Verify merged output
         verification_dict, verification_status = _build_verification_dict(
-            verifier, agent_name, results,
+            verifier,
+            agent_name,
+            results,
         )
 
         # Audit: agent end + verifier
         await _write_audit_end(
-            audit_writer, run_id, now, "agent_end",
-            agent_name, "agent", results, verification_dict,
+            audit_writer,
+            run_id,
+            now,
+            "agent_end",
+            agent_name,
+            "agent",
+            results,
+            verification_dict,
         )
 
         # SSE: agent completed
-        await _publish_sse(event_manager, run_id, {
-            "type": "agent_completed",
-            "agent": agent_name,
-            "verification_status": verification_status,
-            "elapsed": round(elapsed, 2),
-            "timestamp": now(),
-        })
+        await _publish_sse(
+            event_manager,
+            run_id,
+            {
+                "type": "agent_completed",
+                "agent": agent_name,
+                "verification_status": verification_status,
+                "elapsed": round(elapsed, 2),
+                "timestamp": now(),
+            },
+        )
 
         # Accumulate verifier results
         merged = {
@@ -423,7 +472,11 @@ def make_fan_out_node(
 
 _EXPIRY_FETCH_TIMEOUT = 8
 _EXPIRY_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        " AppleWebKit/537.36 (KHTML, like Gecko)"
+        " Chrome/131.0.0.0 Safari/537.36"
+    ),
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
 }
@@ -472,22 +525,29 @@ def make_job_expiry_validator_node(
         now = datetime.now(timezone.utc).isoformat
         node_name = "job_expiry_check"
 
-        await _publish_sse(event_manager, run_id, {
-            "type": "static_validator_started",
-            "agent": node_name,
-            "timestamp": now(),
-        })
+        await _publish_sse(
+            event_manager,
+            run_id,
+            {
+                "type": "static_validator_started",
+                "agent": node_name,
+                "timestamp": now(),
+            },
+        )
 
         node_start(pipeline, state, node_name)
         t0 = time.monotonic()
 
         if audit_writer:
-            await audit_writer.append(run_id, AuditEvent(
-                timestamp=now(),
-                event_type="static_validator_start",
-                agent=node_name,
-                node_type="static_validator",
-            ))
+            await audit_writer.append(
+                run_id,
+                AuditEvent(
+                    timestamp=now(),
+                    event_type="static_validator_start",
+                    agent=node_name,
+                    node_type="static_validator",
+                ),
+            )
 
         raw_jobs = list(state.get("raw_job_results", []))
         existing_filtered = list(state.get("filtered_job_urls", []))
@@ -520,21 +580,28 @@ def make_job_expiry_validator_node(
         node_end(pipeline, state, node_name, elapsed, expired=len(expired))
 
         if audit_writer:
-            await audit_writer.append(run_id, AuditEvent(
-                timestamp=now(),
-                event_type="static_validator_end",
-                agent=node_name,
-                node_type="static_validator",
-                data=report,
-            ))
+            await audit_writer.append(
+                run_id,
+                AuditEvent(
+                    timestamp=now(),
+                    event_type="static_validator_end",
+                    agent=node_name,
+                    node_type="static_validator",
+                    data=report,
+                ),
+            )
 
-        await _publish_sse(event_manager, run_id, {
-            "type": "static_validator_completed",
-            "agent": node_name,
-            "verification_status": "pass",
-            "elapsed": round(elapsed, 2),
-            "timestamp": now(),
-        })
+        await _publish_sse(
+            event_manager,
+            run_id,
+            {
+                "type": "static_validator_completed",
+                "agent": node_name,
+                "verification_status": "pass",
+                "elapsed": round(elapsed, 2),
+                "timestamp": now(),
+            },
+        )
 
         return {
             "raw_job_results": valid,
@@ -564,22 +631,29 @@ def make_url_filter_report_node(
         now = datetime.now(timezone.utc).isoformat
         node_name = "url_filter_report"
 
-        await _publish_sse(event_manager, run_id, {
-            "type": "static_validator_started",
-            "agent": node_name,
-            "timestamp": now(),
-        })
+        await _publish_sse(
+            event_manager,
+            run_id,
+            {
+                "type": "static_validator_started",
+                "agent": node_name,
+                "timestamp": now(),
+            },
+        )
 
         node_start(pipeline, state, node_name)
         t0 = time.monotonic()
 
         if audit_writer:
-            await audit_writer.append(run_id, AuditEvent(
-                timestamp=now(),
-                event_type="static_validator_start",
-                agent=node_name,
-                node_type="static_validator",
-            ))
+            await audit_writer.append(
+                run_id,
+                AuditEvent(
+                    timestamp=now(),
+                    event_type="static_validator_start",
+                    agent=node_name,
+                    node_type="static_validator",
+                ),
+            )
 
         # Collect filtered URLs from state
         report: dict[str, Any] = {}
@@ -595,21 +669,28 @@ def make_url_filter_report_node(
         node_end(pipeline, state, node_name, elapsed, total_filtered=total)
 
         if audit_writer:
-            await audit_writer.append(run_id, AuditEvent(
-                timestamp=now(),
-                event_type="static_validator_end",
-                agent=node_name,
-                node_type="static_validator",
-                data=report,
-            ))
+            await audit_writer.append(
+                run_id,
+                AuditEvent(
+                    timestamp=now(),
+                    event_type="static_validator_end",
+                    agent=node_name,
+                    node_type="static_validator",
+                    data=report,
+                ),
+            )
 
-        await _publish_sse(event_manager, run_id, {
-            "type": "static_validator_completed",
-            "agent": node_name,
-            "verification_status": "pass",
-            "elapsed": round(elapsed, 2),
-            "timestamp": now(),
-        })
+        await _publish_sse(
+            event_manager,
+            run_id,
+            {
+                "type": "static_validator_completed",
+                "agent": node_name,
+                "verification_status": "pass",
+                "elapsed": round(elapsed, 2),
+                "timestamp": now(),
+            },
+        )
 
         return {}
 

@@ -1,10 +1,11 @@
 """Tests for the API key resolution logic."""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from app.services.api_key_service import resolve_api_key
+import pytest
+
 from app.auth.encryption import encrypt_api_key
+from app.services.api_key_service import resolve_api_key
 
 
 def _make_user(role="user", encrypted_api_key=None, free_runs_used=0):

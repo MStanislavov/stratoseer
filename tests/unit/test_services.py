@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import asyncio
-import json
 from datetime import datetime, timezone
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -209,6 +206,7 @@ def _mock_execute_scalar_one(value):
 # RunService
 # ===================================================================
 
+
 class TestRunToRead:
     def test_converts_run_to_read_schema(self):
         from app.services.run_service import run_to_read
@@ -222,11 +220,13 @@ class TestRunToRead:
         assert read.started_at == _NOW
         assert read.finished_at == _NOW
         assert read.verifier_status == "pass"
+
     def test_handles_none_optional_fields(self):
         from app.services.run_service import run_to_read
 
         run = _make_run(
-            started_at=None, finished_at=None,
+            started_at=None,
+            finished_at=None,
             verifier_status=None,
         )
         read = run_to_read(run)
@@ -426,6 +426,7 @@ class TestCreateRun:
         db.get.return_value = profile
 
         _make_run(id="new-run", status="pending")
+
         # After db.commit + db.refresh, the run should have an id
         def _refresh(obj):
             obj.id = "new-run"
@@ -612,31 +613,32 @@ class TestBuildGraph:
 # AuthService
 # ===================================================================
 
+
 class TestRegisterUser:
     @patch("app.services.auth_service.send_verification_email")
     @patch("app.services.auth_service.create_email_verify_token", return_value="vtok")
     @patch("app.services.auth_service.create_refresh_token", return_value="rt-new")
     @patch("app.services.auth_service.create_access_token", return_value="at-new")
     @patch("app.services.auth_service.hash_password", return_value="$hashed$")
-    async def test_first_user_becomes_admin(
-        self, mock_hash, mock_at, mock_rt, mock_vt, mock_send
-    ):
+    async def test_first_user_becomes_admin(self, mock_hash, mock_at, mock_rt, mock_vt, mock_send):
         from app.schemas.auth import RegisterRequest
         from app.services.auth_service import register_user
 
         db = _mock_db()
         # Email not taken
         db.execute.side_effect = [
-            _mock_execute_scalar_one(None),   # email check
-            _mock_execute_scalar_one(0),       # user count = 0
-            MagicMock(),                       # _store_refresh_token decode
+            _mock_execute_scalar_one(None),  # email check
+            _mock_execute_scalar_one(0),  # user count = 0
+            MagicMock(),  # _store_refresh_token decode
         ]
 
         # Mock _store_refresh_token's inner decode_token
         with patch("app.services.auth_service._store_refresh_token", new_callable=AsyncMock):
             body = RegisterRequest(
-                first_name="A", last_name="B",
-                email="a@b.com", password="Password1",
+                first_name="A",
+                last_name="B",
+                email="a@b.com",
+                password="Password1",
             )
             _, access, refresh = await register_user(db, body)
 
@@ -652,8 +654,10 @@ class TestRegisterUser:
         db.execute.return_value = _mock_execute_scalar_one(_make_user())
 
         body = RegisterRequest(
-            first_name="A", last_name="B",
-            email="a@b.com", password="Password1",
+            first_name="A",
+            last_name="B",
+            email="a@b.com",
+            password="Password1",
         )
         with pytest.raises(ValueError, match="Email already registered"):
             await register_user(db, body)
@@ -730,8 +734,8 @@ class TestRefreshTokens:
         user = _make_user()
         db.execute.side_effect = [
             _mock_execute_scalar_one(stored_rt),  # find stored token
-            _mock_execute_scalar_one(user),        # find user
-            MagicMock(),                            # store new token
+            _mock_execute_scalar_one(user),  # find user
+            MagicMock(),  # store new token
         ]
 
         new_access, new_refresh = await refresh_tokens(db, "old-rt")
@@ -866,10 +870,10 @@ class TestGoogleLogin:
         db = _mock_db()
         # No user by google_id, no user by email, user count = 0
         db.execute.side_effect = [
-            _mock_execute_scalar_one(None),   # google_id lookup
-            _mock_execute_scalar_one(None),   # email lookup
-            _mock_execute_scalar_one(0),      # user count
-            MagicMock(),                       # store rt
+            _mock_execute_scalar_one(None),  # google_id lookup
+            _mock_execute_scalar_one(None),  # email lookup
+            _mock_execute_scalar_one(0),  # user count
+            MagicMock(),  # store rt
         ]
 
         google_info = {
@@ -879,6 +883,7 @@ class TestGoogleLogin:
             "last_name": "User",
             "email_verified": True,
         }
+
         # The db.flush needs to work on the newly-created user mock
         async def _flush():
             pass
@@ -1016,6 +1021,7 @@ class TestResetPassword:
 # CoverLetterService
 # ===================================================================
 
+
 class TestClToRead:
     def test_converts_with_job(self):
         from app.services.cover_letter_service import cl_to_read
@@ -1055,9 +1061,7 @@ class TestResolveJobOpportunity:
         job = _make_job()
         db.get.return_value = job
 
-        job_dict, jd, job_orm = await resolve_job_opportunity(
-            db, "job-1", "prof-1", ""
-        )
+        job_dict, jd, job_orm = await resolve_job_opportunity(db, "job-1", "prof-1", "")
         assert job_dict["title"] == "Senior Engineer"
         assert jd == "Build things"  # falls back to description
         assert job_orm is job
@@ -1244,6 +1248,7 @@ class TestDeleteCoverLetter:
 # AuditService
 # ===================================================================
 
+
 class TestGetRunOrRaise:
     async def test_returns_run(self):
         from app.services.audit_service import _get_run_or_raise
@@ -1298,9 +1303,7 @@ class TestGetVerifierReport:
         db.get.return_value = _make_run(profile_id="prof-1")
 
         mock_writer = MagicMock()
-        mock_writer.read_bundle = AsyncMock(
-            return_value={"verifier_report": {"status": "pass"}}
-        )
+        mock_writer.read_bundle = AsyncMock(return_value={"verifier_report": {"status": "pass"}})
         mock_writer_cls.return_value = mock_writer
 
         result = await get_verifier_report(db, "prof-1", "run-1")
@@ -1330,14 +1333,16 @@ class TestGetExecutiveInsights:
         db.get.return_value = _make_run(profile_id="prof-1")
 
         mock_writer = MagicMock()
-        mock_writer.read_bundle = AsyncMock(return_value={
-            "final_artifacts": {
-                "strategic_recommendations": ["hire more"],
-                "ceo_summary": "All good",
-                "risk_assessments": ["low risk"],
-                "cfo_summary": "Budget ok",
+        mock_writer.read_bundle = AsyncMock(
+            return_value={
+                "final_artifacts": {
+                    "strategic_recommendations": ["hire more"],
+                    "ceo_summary": "All good",
+                    "risk_assessments": ["low risk"],
+                    "cfo_summary": "Budget ok",
+                }
             }
-        })
+        )
         mock_writer_cls.return_value = mock_writer
 
         result = await get_executive_insights(db, "prof-1", "run-1")
@@ -1370,10 +1375,12 @@ class TestGetTokenUsage:
 
         usage_data = {"total_tokens": 5000, "agents": {}}
         mock_writer = MagicMock()
-        mock_writer.read_log = AsyncMock(return_value=[
-            {"event_type": "agent_start", "data": {}},
-            {"event_type": "token_usage_summary", "data": usage_data},
-        ])
+        mock_writer.read_log = AsyncMock(
+            return_value=[
+                {"event_type": "agent_start", "data": {}},
+                {"event_type": "token_usage_summary", "data": usage_data},
+            ]
+        )
         mock_writer_cls.return_value = mock_writer
 
         result = await get_token_usage(db, "prof-1", "run-1")
@@ -1387,9 +1394,11 @@ class TestGetTokenUsage:
         db.get.return_value = _make_run(profile_id="prof-1")
 
         mock_writer = MagicMock()
-        mock_writer.read_log = AsyncMock(return_value=[
-            {"event_type": "agent_start", "data": {}},
-        ])
+        mock_writer.read_log = AsyncMock(
+            return_value=[
+                {"event_type": "agent_start", "data": {}},
+            ]
+        )
         mock_writer_cls.return_value = mock_writer
 
         with pytest.raises(LookupError, match="No token usage data"):
@@ -1453,9 +1462,7 @@ class TestReplayRun:
         db.get.return_value = _make_run(profile_id="prof-1")
 
         mock_writer = MagicMock()
-        mock_writer.read_bundle = AsyncMock(
-            return_value={"final_artifacts": {"data": "old"}}
-        )
+        mock_writer.read_bundle = AsyncMock(return_value={"final_artifacts": {"data": "old"}})
         mock_writer.create_run_bundle = AsyncMock()
         mock_writer_cls.return_value = mock_writer
 
@@ -1486,6 +1493,7 @@ class TestReplayRun:
 # ===================================================================
 # PolicyService
 # ===================================================================
+
 
 class TestListPolicies:
     @patch("app.services.policy_service.settings")
@@ -1540,6 +1548,7 @@ class TestGetPolicy:
 # ResultService
 # ===================================================================
 
+
 class TestListJobs:
     async def test_returns_jobs(self):
         from app.services.result_service import list_jobs
@@ -1577,9 +1586,15 @@ class TestListCertifications:
 
         db = _mock_db()
         cert = MagicMock(
-            id="c1", profile_id="prof-1", run_id="run-1",
-            title="AWS SA", provider="Amazon", url="https://aws.com",
-            description="Cloud cert", cost="$300", duration="3 months",
+            id="c1",
+            profile_id="prof-1",
+            run_id="run-1",
+            title="AWS SA",
+            provider="Amazon",
+            url="https://aws.com",
+            description="Cloud cert",
+            cost="$300",
+            duration="3 months",
             created_at=_NOW,
         )
         db.execute.return_value = _mock_execute_result([cert])
@@ -1595,9 +1610,15 @@ class TestListCourses:
 
         db = _mock_db()
         course = MagicMock(
-            id="co1", profile_id="prof-1", run_id="run-1",
-            title="Python 101", platform="Udemy", url="https://udemy.com",
-            description="Learn Python", cost="$20", duration="10h",
+            id="co1",
+            profile_id="prof-1",
+            run_id="run-1",
+            title="Python 101",
+            platform="Udemy",
+            url="https://udemy.com",
+            description="Learn Python",
+            cost="$20",
+            duration="10h",
             created_at=_NOW,
         )
         db.execute.return_value = _mock_execute_result([course])
@@ -1613,10 +1634,16 @@ class TestListEvents:
 
         db = _mock_db()
         event = MagicMock(
-            id="e1", profile_id="prof-1", run_id="run-1",
-            title="PyCon", organizer="PSF", url="https://pycon.org",
-            description="Python conf", event_date="2026-05-01",
-            location="Pittsburgh", created_at=_NOW,
+            id="e1",
+            profile_id="prof-1",
+            run_id="run-1",
+            title="PyCon",
+            organizer="PSF",
+            url="https://pycon.org",
+            description="Python conf",
+            event_date="2026-05-01",
+            location="Pittsburgh",
+            created_at=_NOW,
         )
         db.execute.return_value = _mock_execute_result([event])
 
@@ -1631,9 +1658,14 @@ class TestListGroups:
 
         db = _mock_db()
         group = MagicMock(
-            id="g1", profile_id="prof-1", run_id="run-1",
-            title="Python Devs", platform="LinkedIn", url="https://linkedin.com",
-            description="A group", member_count=500,
+            id="g1",
+            profile_id="prof-1",
+            run_id="run-1",
+            title="Python Devs",
+            platform="LinkedIn",
+            url="https://linkedin.com",
+            description="A group",
+            member_count=500,
             created_at=_NOW,
         )
         db.execute.return_value = _mock_execute_result([group])
@@ -1650,9 +1682,15 @@ class TestListTrends:
 
         db = _mock_db()
         trend = MagicMock(
-            id="t1", profile_id="prof-1", run_id="run-1",
-            title="AI Trend", category="tech", url="https://ai.com",
-            description="Growing", relevance="high", source="HN",
+            id="t1",
+            profile_id="prof-1",
+            run_id="run-1",
+            title="AI Trend",
+            category="tech",
+            url="https://ai.com",
+            description="Growing",
+            relevance="high",
+            source="HN",
             created_at=_NOW,
         )
         db.execute.return_value = _mock_execute_result([trend])
@@ -1733,7 +1771,7 @@ class TestDeleteJobCascade:
         job = _make_job()
         db.execute.side_effect = [
             _mock_execute_scalar_one(job),  # _get_by_id
-            MagicMock(),                     # delete cover letters
+            MagicMock(),  # delete cover letters
         ]
 
         result = await delete_job_cascade(db, "prof-1", "job-1")
@@ -1754,6 +1792,7 @@ class TestDeleteJobCascade:
 # ===================================================================
 # ProfileService
 # ===================================================================
+
 
 class TestSerializeDeserialize:
     def test_serialize_list(self):
@@ -1929,15 +1968,15 @@ class TestDeleteProfile:
         run_result = MagicMock()
         run_result.all.return_value = [("run-1",), ("run-2",)]
         db.execute.side_effect = [
-            run_result,      # select run IDs
-            MagicMock(),     # delete cover letters
-            MagicMock(),     # delete jobs
-            MagicMock(),     # delete certs
-            MagicMock(),     # delete courses
-            MagicMock(),     # delete events
-            MagicMock(),     # delete groups
-            MagicMock(),     # delete trends
-            MagicMock(),     # delete runs
+            run_result,  # select run IDs
+            MagicMock(),  # delete cover letters
+            MagicMock(),  # delete jobs
+            MagicMock(),  # delete certs
+            MagicMock(),  # delete courses
+            MagicMock(),  # delete events
+            MagicMock(),  # delete groups
+            MagicMock(),  # delete trends
+            MagicMock(),  # delete runs
         ]
 
         result = await delete_profile(db, "prof-1")
@@ -2116,6 +2155,7 @@ class TestEnsureCvSummary:
 
         cv_data = b"pdf-content"
         import hashlib
+
         cv_hash = hashlib.sha256(cv_data).hexdigest()
 
         mock_asyncio.to_thread = AsyncMock(return_value=cv_hash)

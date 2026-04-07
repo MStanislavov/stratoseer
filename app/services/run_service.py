@@ -9,7 +9,6 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
-from app.llm.search_tool import SafeDuckDuckGoSearchTool
 from langchain_openai import ChatOpenAI
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,15 +23,16 @@ from app.graphs.cover_letter import build_cover_letter_graph
 from app.graphs.daily import build_daily_graph
 from app.graphs.weekly import build_weekly_graph
 from app.llm.prompt_loader import PromptLoader
+from app.llm.search_tool import SafeDuckDuckGoSearchTool
 from app.models.certification import Certification
 from app.models.course import Course
 from app.models.cover_letter import CoverLetter
 from app.models.event import Event
 from app.models.group import Group
 from app.models.job_opportunity import JobOpportunity
-from app.models.trend import Trend
 from app.models.profile import UserProfile
 from app.models.run import Run
+from app.models.trend import Trend
 from app.models.user import User
 from app.schemas.run import RunCreate, RunRead
 from app.services.api_key_service import resolve_api_key
@@ -243,76 +243,92 @@ def _read_cv_bytes(cv_data: bytes) -> str:
         return ""
 
 
-async def persist_results(
-    run_id: str, profile_id: str, result: dict[str, Any]
-) -> None:
+async def persist_results(run_id: str, profile_id: str, result: dict[str, Any]) -> None:
     """Save the 5 DTO types from the pipeline result to the database."""
     async with async_session_factory() as session:
         for job in result.get("formatted_jobs", []):
-            session.add(JobOpportunity(
-                profile_id=profile_id, run_id=run_id,
-                title=job.get("title", "Untitled"),
-                company=job.get("company"),
-                url=job.get("url"),
-                description=job.get("description"),
-                location=job.get("location"),
-                salary_range=job.get("salary_range"),
-                source_query=job.get("source_query"),
-            ))
+            session.add(
+                JobOpportunity(
+                    profile_id=profile_id,
+                    run_id=run_id,
+                    title=job.get("title", "Untitled"),
+                    company=job.get("company"),
+                    url=job.get("url"),
+                    description=job.get("description"),
+                    location=job.get("location"),
+                    salary_range=job.get("salary_range"),
+                    source_query=job.get("source_query"),
+                )
+            )
         for cert in result.get("formatted_certifications", []):
-            session.add(Certification(
-                profile_id=profile_id, run_id=run_id,
-                title=cert.get("title", "Untitled"),
-                provider=cert.get("provider"),
-                url=cert.get("url"),
-                description=cert.get("description"),
-                cost=cert.get("cost"),
-                duration=cert.get("duration"),
-            ))
+            session.add(
+                Certification(
+                    profile_id=profile_id,
+                    run_id=run_id,
+                    title=cert.get("title", "Untitled"),
+                    provider=cert.get("provider"),
+                    url=cert.get("url"),
+                    description=cert.get("description"),
+                    cost=cert.get("cost"),
+                    duration=cert.get("duration"),
+                )
+            )
         for course in result.get("formatted_courses", []):
-            session.add(Course(
-                profile_id=profile_id, run_id=run_id,
-                title=course.get("title", "Untitled"),
-                platform=course.get("platform"),
-                url=course.get("url"),
-                description=course.get("description"),
-                cost=course.get("cost"),
-                duration=course.get("duration"),
-            ))
+            session.add(
+                Course(
+                    profile_id=profile_id,
+                    run_id=run_id,
+                    title=course.get("title", "Untitled"),
+                    platform=course.get("platform"),
+                    url=course.get("url"),
+                    description=course.get("description"),
+                    cost=course.get("cost"),
+                    duration=course.get("duration"),
+                )
+            )
         today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         for event in result.get("formatted_events", []):
             event_date = event.get("event_date")
             if event_date and event_date < today_str:
                 logger.info("Skipping past event %s (date=%s)", event.get("title"), event_date)
                 continue
-            session.add(Event(
-                profile_id=profile_id, run_id=run_id,
-                title=event.get("title", "Untitled"),
-                organizer=event.get("organizer"),
-                url=event.get("url"),
-                description=event.get("description"),
-                event_date=event_date,
-                location=event.get("location"),
-            ))
+            session.add(
+                Event(
+                    profile_id=profile_id,
+                    run_id=run_id,
+                    title=event.get("title", "Untitled"),
+                    organizer=event.get("organizer"),
+                    url=event.get("url"),
+                    description=event.get("description"),
+                    event_date=event_date,
+                    location=event.get("location"),
+                )
+            )
         for group in result.get("formatted_groups", []):
-            session.add(Group(
-                profile_id=profile_id, run_id=run_id,
-                title=group.get("title", "Untitled"),
-                platform=group.get("platform"),
-                url=group.get("url"),
-                description=group.get("description"),
-                member_count=group.get("member_count"),
-            ))
+            session.add(
+                Group(
+                    profile_id=profile_id,
+                    run_id=run_id,
+                    title=group.get("title", "Untitled"),
+                    platform=group.get("platform"),
+                    url=group.get("url"),
+                    description=group.get("description"),
+                    member_count=group.get("member_count"),
+                )
+            )
         for trend in result.get("formatted_trends", []):
-            session.add(Trend(
-                profile_id=profile_id, run_id=run_id,
-                title=trend.get("title", "Untitled"),
-                category=trend.get("category"),
-                url=trend.get("url"),
-                description=trend.get("description"),
-                relevance=trend.get("relevance"),
-                source=trend.get("source"),
-            ))
+            session.add(
+                Trend(
+                    profile_id=profile_id,
+                    run_id=run_id,
+                    title=trend.get("title", "Untitled"),
+                    category=trend.get("category"),
+                    url=trend.get("url"),
+                    description=trend.get("description"),
+                    relevance=trend.get("relevance"),
+                    source=trend.get("source"),
+                )
+            )
         await session.commit()
 
 
@@ -325,15 +341,22 @@ async def execute_run(run_id: str, profile_id: str, mode: str, api_key: str) -> 
         profile_data = await _load_profile(profile_id)
         logger.info(
             "Run %s started (mode=%s, profile=%s, targets=%s, constraints=%s)",
-            run_id, mode, profile_id, profile_data["profile_targets"], profile_data["profile_constraints"],
+            run_id,
+            mode,
+            profile_id,
+            profile_data["profile_targets"],
+            profile_data["profile_constraints"],
         )
 
-        await event_manager.publish(run_id, {
-            "type": "run_started",
-            "run_id": run_id,
-            "mode": mode,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        await event_manager.publish(
+            run_id,
+            {
+                "type": "run_started",
+                "run_id": run_id,
+                "mode": mode,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
 
         policy_engine = PolicyEngine(settings.policy_dir)
         audit_writer = AuditWriter(policy_engine=policy_engine)
@@ -348,14 +371,19 @@ async def execute_run(run_id: str, profile_id: str, mode: str, api_key: str) -> 
         )
 
         from app.engine.verifier import Verifier
+
         verifier = Verifier(policy_engine=policy_engine)
 
         token_tracker = RunTokenTracker(run_id)
 
         agent_factory = create_agent_factory(api_key)
         graph = _build_graph(
-            mode, policy_engine, audit_writer, agent_factory,
-            verifier=verifier, run_event_manager=event_manager,
+            mode,
+            policy_engine,
+            audit_writer,
+            agent_factory,
+            verifier=verifier,
+            run_event_manager=event_manager,
             token_tracker=token_tracker,
         )
         compiled = graph.compile()
@@ -390,7 +418,9 @@ async def execute_run(run_id: str, profile_id: str, mode: str, api_key: str) -> 
         errors = result.get("errors", [])
         logger.info(
             "Run %s completed in %.2fs (errors=%d)",
-            run_id, elapsed, len(errors),
+            run_id,
+            elapsed,
+            len(errors),
         )
         if errors:
             logger.warning("Run %s had errors: %s", run_id, errors)
@@ -404,36 +434,46 @@ async def execute_run(run_id: str, profile_id: str, mode: str, api_key: str) -> 
             verifier_status = "partial"
 
         await _update_run_status(
-            run_id, "completed",
+            run_id,
+            "completed",
             verifier_status=verifier_status,
         )
-        await event_manager.publish(run_id, {
-            "type": "run_finished",
-            "run_id": run_id,
-            "status": "completed",
-            "verifier_status": verifier_status,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        await event_manager.publish(
+            run_id,
+            {
+                "type": "run_finished",
+                "run_id": run_id,
+                "status": "completed",
+                "verifier_status": verifier_status,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
 
     except asyncio.CancelledError:
         logger.info("Run %s cancelled", run_id)
         await _update_run_status(run_id, "cancelled")
-        await event_manager.publish(run_id, {
-            "type": "run_cancelled",
-            "run_id": run_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        await event_manager.publish(
+            run_id,
+            {
+                "type": "run_cancelled",
+                "run_id": run_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
         raise
 
     except Exception as exc:
         logger.error("Run %s failed: %s", run_id, exc, exc_info=True)
         await _update_run_status(run_id, "failed")
-        await event_manager.publish(run_id, {
-            "type": "run_failed",
-            "run_id": run_id,
-            "error": str(exc),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        await event_manager.publish(
+            run_id,
+            {
+                "type": "run_failed",
+                "run_id": run_id,
+                "error": str(exc),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
 
     finally:
         await event_manager.close(run_id)
@@ -458,9 +498,7 @@ async def list_all_runs(
     return [run_to_read(r) for r in result.scalars().all()]
 
 
-async def create_run(
-    db: AsyncSession, profile_id: str, body: RunCreate, user: User
-) -> RunRead:
+async def create_run(db: AsyncSession, profile_id: str, body: RunCreate, user: User) -> RunRead:
     """Create a run record and launch the pipeline in the background.
 
     Raises LookupError if the profile does not exist.
@@ -503,9 +541,7 @@ async def create_run(
     await db.commit()
     await db.refresh(run)
 
-    task = asyncio.create_task(
-        execute_run(run.id, profile_id, body.mode, api_key)
-    )
+    task = asyncio.create_task(execute_run(run.id, profile_id, body.mode, api_key))
     _running_tasks[run.id] = task
 
     return run_to_read(run)
@@ -514,17 +550,13 @@ async def create_run(
 async def list_runs(db: AsyncSession, profile_id: str) -> list[RunRead]:
     """List all runs for a profile, most recent first."""
     result = await db.execute(
-        select(Run)
-        .where(Run.profile_id == profile_id)
-        .order_by(Run.created_at.desc())
+        select(Run).where(Run.profile_id == profile_id).order_by(Run.created_at.desc())
     )
     runs = result.scalars().all()
     return [run_to_read(r) for r in runs]
 
 
-async def get_run(
-    db: AsyncSession, profile_id: str, run_id: str
-) -> RunRead | None:
+async def get_run(db: AsyncSession, profile_id: str, run_id: str) -> RunRead | None:
     """Return RunRead or None if not found / wrong profile."""
     run = await db.get(Run, run_id)
     if run is None or run.profile_id != profile_id:
@@ -532,9 +564,7 @@ async def get_run(
     return run_to_read(run)
 
 
-async def cancel_run(
-    db: AsyncSession, profile_id: str, run_id: str
-) -> dict:
+async def cancel_run(db: AsyncSession, profile_id: str, run_id: str) -> dict:
     """Cancel a running task.
 
     If the in-memory task is still alive, request async cancellation.
@@ -581,16 +611,16 @@ async def delete_run(db: AsyncSession, profile_id: str, run_id: str) -> bool:
         raise ValueError("Cannot delete a run that is still executing")
 
     # 1) Delete cover letters that belong to this run
-    await db.execute(
-        delete(CoverLetter).where(CoverLetter.run_id == run_id)
-    )
+    await db.execute(delete(CoverLetter).where(CoverLetter.run_id == run_id))
 
     # 2) Unlink cover letters from other runs that reference jobs from this run
     await db.execute(
         update(CoverLetter)
-        .where(CoverLetter.job_opportunity_id.in_(
-            select(JobOpportunity.id).where(JobOpportunity.run_id == run_id)
-        ))
+        .where(
+            CoverLetter.job_opportunity_id.in_(
+                select(JobOpportunity.id).where(JobOpportunity.run_id == run_id)
+            )
+        )
         .values(job_opportunity_id=None)
     )
 

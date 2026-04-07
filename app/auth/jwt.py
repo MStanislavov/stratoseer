@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from jose import JWTError, jwt
+from jose import jwt
 
 from app.config import settings
 
@@ -26,8 +26,7 @@ def create_access_token(user_id: str, email: str, role: str) -> str:
         "email": email,
         "role": role,
         "type": "access",
-        "exp": datetime.now(timezone.utc)
-        + timedelta(minutes=settings.jwt_access_expiry_minutes),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_access_expiry_minutes),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=ALGORITHM)
 

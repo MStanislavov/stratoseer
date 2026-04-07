@@ -198,9 +198,7 @@ async def test_refresh_token(client):
         },
     )
     refresh = reg.json()["refresh_token"]
-    resp = await client.post(
-        "/api/auth/refresh", json={"refresh_token": refresh}
-    )
+    resp = await client.post("/api/auth/refresh", json={"refresh_token": refresh})
     assert resp.status_code == 200
     assert "access_token" in resp.json()
 
@@ -222,15 +220,11 @@ async def test_logout(client):
         },
     )
     refresh = reg.json()["refresh_token"]
-    resp = await client.post(
-        "/api/auth/logout", json={"refresh_token": refresh}
-    )
+    resp = await client.post("/api/auth/logout", json={"refresh_token": refresh})
     assert resp.status_code == 200
 
     # Refresh with revoked token should fail
-    resp = await client.post(
-        "/api/auth/refresh", json={"refresh_token": refresh}
-    )
+    resp = await client.post("/api/auth/refresh", json={"refresh_token": refresh})
     assert resp.status_code == 401
 
 
@@ -264,9 +258,7 @@ async def test_profile_ownership(client, admin_headers, auth_headers):
     admin_profile_id = resp.json()["id"]
 
     # Regular user cannot access admin's profile
-    resp = await client.get(
-        f"/api/profiles/{admin_profile_id}", headers=auth_headers
-    )
+    resp = await client.get(f"/api/profiles/{admin_profile_id}", headers=auth_headers)
     assert resp.status_code == 403
 
     # Regular user creates own profile

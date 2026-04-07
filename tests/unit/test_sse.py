@@ -4,12 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any
-
-import pytest
 
 from app.sse import RunEventManager
-
 
 # ------------------------------------------------------------------
 # subscribe / unsubscribe

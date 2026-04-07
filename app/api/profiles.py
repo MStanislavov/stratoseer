@@ -148,9 +148,7 @@ async def upload_cv(
     if not filename.endswith(".pdf") and file.content_type != "application/pdf":
         raise HTTPException(status_code=422, detail="Only PDF files are accepted")
     content = await file.read()
-    result = await profile_service.upload_cv(
-        db, profile_id, file.filename or "cv.pdf", content
-    )
+    result = await profile_service.upload_cv(db, profile_id, file.filename or "cv.pdf", content)
     if result is None:
         raise HTTPException(status_code=404, detail=profile_not_found)
     return result

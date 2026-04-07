@@ -86,12 +86,8 @@ class ReplayEngine:
             new_titles = {o.get("title", "") for o in new_items}
 
             for title in sorted(new_titles - orig_titles):
-                drift_items.append(
-                    {"type": "addition", "entity": entity_type, "title": title}
-                )
+                drift_items.append({"type": "addition", "entity": entity_type, "title": title})
             for title in sorted(orig_titles - new_titles):
-                drift_items.append(
-                    {"type": "removal", "entity": entity_type, "title": title}
-                )
+                drift_items.append({"type": "removal", "entity": entity_type, "title": title})
 
         return drift_items

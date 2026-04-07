@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,8 +17,8 @@ from app.models.cover_letter import CoverLetter
 from app.models.job_opportunity import JobOpportunity
 from app.models.profile import UserProfile
 from app.models.run import Run
-from app.schemas.cover_letter import CoverLetterCreate, CoverLetterRead
 from app.models.user import User
+from app.schemas.cover_letter import CoverLetterCreate, CoverLetterRead
 from app.services.api_key_service import get_user_api_key
 from app.services.run_service import (
     _parse_profile_constraints,
@@ -31,9 +32,7 @@ from app.sse import event_manager
 _background_tasks: set[asyncio.Task] = set()
 
 
-def cl_to_read(
-    cl: CoverLetter, job: JobOpportunity | None = None
-) -> CoverLetterRead:
+def cl_to_read(cl: CoverLetter, job: JobOpportunity | None = None) -> CoverLetterRead:
     """Convert a CoverLetter ORM instance to a CoverLetterRead schema."""
     return CoverLetterRead(
         id=cl.id,
@@ -128,11 +127,14 @@ async def generate_cover_letter(
                 run.started_at = datetime.now(timezone.utc)
                 await session.commit()
 
-        await event_manager.publish(run_id, {
-            "type": "run_started",
-            "run_id": run_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        await event_manager.publish(
+            run_id,
+            {
+                "type": "run_started",
+                "run_id": run_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
 
         # Load profile and use cached CV summary (or generate on demand)
         async with async_session_factory() as session:
@@ -167,6 +169,7 @@ async def generate_cover_letter(
         )
 
         from app.engine.verifier import Verifier
+
         verifier = Verifier(policy_engine=policy_engine)
 
         graph = build_cover_letter_graph(
@@ -207,11 +210,14 @@ async def generate_cover_letter(
 
             await session.commit()
 
-        await event_manager.publish(run_id, {
-            "type": "run_finished",
-            "run_id": run_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        await event_manager.publish(
+            run_id,
+            {
+                "type": "run_finished",
+                "run_id": run_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
 
     except Exception as e:
         print(e)
@@ -222,11 +228,14 @@ async def generate_cover_letter(
                 run.finished_at = datetime.now(timezone.utc)
                 await session.commit()
 
-        await event_manager.publish(run_id, {
-            "type": "run_failed",
-            "run_id": run_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        await event_manager.publish(
+            run_id,
+            {
+                "type": "run_failed",
+                "run_id": run_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
 
     finally:
         await event_manager.close(run_id)
@@ -249,7 +258,9 @@ async def create_cover_letter(
         raise ValueError("No API key available for cover letter generation")
 
     if not profile.cv_data:
-        raise ValueError("Profile is incomplete: please upload a CV before generating a cover letter")
+        raise ValueError(
+            "Profile is incomplete: please upload a CV before generating a cover letter"
+        )
 
     if not body.job_opportunity_id and not body.jd_text:
         raise ValueError("Either job_opportunity_id or jd_text must be provided")
@@ -302,9 +313,7 @@ async def create_cover_letter(
     return cl_to_read(cl, job_orm)
 
 
-async def list_cover_letters(
-    db: AsyncSession, profile_id: str
-) -> list[CoverLetterRead]:
+async def list_cover_letters(db: AsyncSession, profile_id: str) -> list[CoverLetterRead]:
     """List all cover letters for a profile, with job details."""
     result = await db.execute(
         select(CoverLetter, JobOpportunity)
@@ -337,9 +346,7 @@ async def get_cover_letter(
     return cl_to_read(cl, job)
 
 
-async def delete_cover_letter(
-    db: AsyncSession, profile_id: str, letter_id: str
-) -> bool:
+async def delete_cover_letter(db: AsyncSession, profile_id: str, letter_id: str) -> bool:
     """Delete a cover letter. Returns True if deleted, False if not found."""
     cl = await db.get(CoverLetter, letter_id)
     if cl is None or cl.profile_id != profile_id:

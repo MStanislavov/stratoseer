@@ -1,4 +1,5 @@
-"""Tests for agent modules: base, goal_extractor, cover_letter, data_formatter, ceo, cfo, factory."""
+"""Tests for agent modules: base, goal_extractor, cover_letter,
+data_formatter, ceo, cfo, factory."""
 
 from __future__ import annotations
 
@@ -33,7 +34,6 @@ from app.agents.schemas import (
     RiskAssessment,
     StrategicRecommendation,
 )
-
 
 # ------------------------------------------------------------------
 # Helpers
@@ -72,7 +72,11 @@ class TestExtractFirstJson:
     def test_valid_json_object(self):
         from app.agents.schemas import GoalExtractorOutput
 
-        text = '{"cert_prompt": "a", "course_prompt": "b", "event_prompt": "c", "group_prompt": "d", "trend_prompt": "e"}'
+        text = (
+            '{"cert_prompt": "a", "course_prompt": "b",'
+            ' "event_prompt": "c", "group_prompt": "d",'
+            ' "trend_prompt": "e"}'
+        )
         result = _extract_first_json(text, GoalExtractorOutput)
         assert result is not None
         assert result.cert_prompt == "a"
@@ -80,7 +84,11 @@ class TestExtractFirstJson:
     def test_json_with_trailing_text(self):
         from app.agents.schemas import GoalExtractorOutput
 
-        text = '{"cert_prompt": "a", "course_prompt": "b", "event_prompt": "c", "group_prompt": "d", "trend_prompt": "e"} some trailing garbage'
+        text = (
+            '{"cert_prompt": "a", "course_prompt": "b",'
+            ' "event_prompt": "c", "group_prompt": "d",'
+            ' "trend_prompt": "e"} some trailing garbage'
+        )
         result = _extract_first_json(text, GoalExtractorOutput)
         assert result is not None
         assert result.trend_prompt == "e"
@@ -216,8 +224,11 @@ class TestLLMAgent:
         agent = LLMAgent(llm=llm)
 
         parsed = GoalExtractorOutput(
-            cert_prompt="a", course_prompt="b", event_prompt="c",
-            group_prompt="d", trend_prompt="e",
+            cert_prompt="a",
+            course_prompt="b",
+            event_prompt="c",
+            group_prompt="d",
+            trend_prompt="e",
         )
         usage_meta = {"input_tokens": 100, "output_tokens": 50}
         result = _make_structured_result(parsed, usage=usage_meta)
@@ -243,7 +254,11 @@ class TestLLMAgent:
         llm = _make_mock_llm()
         agent = LLMAgent(llm=llm)
 
-        json_str = '{"cert_prompt":"a","course_prompt":"b","event_prompt":"c","group_prompt":"d","trend_prompt":"e"}'
+        json_str = (
+            '{"cert_prompt":"a","course_prompt":"b",'
+            '"event_prompt":"c","group_prompt":"d",'
+            '"trend_prompt":"e"}'
+        )
         raw = MagicMock()
         raw.content = json_str
         raw.usage_metadata = None
@@ -278,7 +293,9 @@ class TestLLMAgent:
         llm.with_structured_output.return_value = structured_llm
 
         out, _ = await agent._invoke_structured(
-            GoalExtractorOutput, "system prompt", "user content",
+            GoalExtractorOutput,
+            "system prompt",
+            "user content",
         )
         assert out is parsed
         # Verify messages structure
@@ -366,8 +383,11 @@ class TestGoalExtractorAgent:
         agent = GoalExtractorAgent(llm=llm)
 
         parsed = GoalExtractorOutput(
-            cert_prompt="a", course_prompt="b", event_prompt="c",
-            group_prompt="d", trend_prompt="e",
+            cert_prompt="a",
+            course_prompt="b",
+            event_prompt="c",
+            group_prompt="d",
+            trend_prompt="e",
         )
 
         with patch.object(agent, "_invoke_structured", new_callable=AsyncMock) as mock_invoke:
@@ -381,8 +401,11 @@ class TestGoalExtractorAgent:
         agent = GoalExtractorAgent(llm=llm)
 
         parsed = GoalExtractorOutput(
-            cert_prompt="a", course_prompt="b", event_prompt="c",
-            group_prompt="d", trend_prompt="e",
+            cert_prompt="a",
+            course_prompt="b",
+            event_prompt="c",
+            group_prompt="d",
+            trend_prompt="e",
         )
 
         with patch.object(agent, "_invoke_structured", new_callable=AsyncMock) as mock_invoke:
@@ -463,8 +486,10 @@ class TestExtractNameFromCv:
         assert _extract_name_from_cv("Mary Jane Watson Smith") == "Mary Jane Watson Smith"
 
     def test_skips_section_headers(self):
-        # "Professional Summary" is skipped, but "Some text" is 2 alpha words, so it's treated as a name
-        # Only a CV with headers followed by non-name content returns None
+        # "Professional Summary" is skipped, but "Some text"
+        # is 2 alpha words, so it's treated as a name.
+        # Only a CV with headers followed by non-name content
+        # returns None
         assert _extract_name_from_cv("Professional Summary\n12345") is None
 
     def test_section_header_alone(self):
@@ -705,7 +730,9 @@ class TestCEOAgent:
         agent = CEOAgent(llm=llm)
 
         rec = StrategicRecommendation(
-            area="career move", recommendation="Apply to ML roles", priority="high",
+            area="career move",
+            recommendation="Apply to ML roles",
+            priority="high",
         )
         parsed = CEOOutput(
             strategic_recommendations=[rec],
@@ -757,8 +784,10 @@ class TestCFOAgent:
         agent = CFOAgent(llm=llm)
 
         ra = RiskAssessment(
-            area="certifications", risk_level="low",
-            time_investment="2 months", roi_estimate="high",
+            area="certifications",
+            risk_level="low",
+            time_investment="2 months",
+            roi_estimate="high",
         )
         parsed = CFOOutput(
             risk_assessments=[ra],

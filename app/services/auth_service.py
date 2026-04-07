@@ -1,4 +1,4 @@
-"""Authentication business logic: register, login, refresh, logout, OAuth, email verify, password reset."""
+"""Auth business logic: register, login, refresh, logout, OAuth, verify, password reset."""
 
 import hashlib
 import logging
@@ -46,9 +46,7 @@ async def _store_refresh_token(db: AsyncSession, user_id: str, token: str) -> No
     await db.flush()
 
 
-async def register_user(
-    db: AsyncSession, body: RegisterRequest
-) -> tuple[User, str, str]:
+async def register_user(db: AsyncSession, body: RegisterRequest) -> tuple[User, str, str]:
     """Register a new user. Returns (user, access_token, refresh_token)."""
     # Check email uniqueness
     existing = await db.execute(select(User).where(User.email == body.email))
@@ -85,9 +83,7 @@ async def register_user(
     return user, access, refresh
 
 
-async def login_user(
-    db: AsyncSession, body: LoginRequest
-) -> tuple[User, str, str]:
+async def login_user(db: AsyncSession, body: LoginRequest) -> tuple[User, str, str]:
     """Authenticate and return tokens. Raises ValueError on bad credentials."""
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
@@ -115,9 +111,7 @@ async def refresh_tokens(db: AsyncSession, refresh_token: str) -> tuple[str, str
         raise ValueError(_ERR_INVALID_TOKEN_TYPE)
 
     token_hash = _hash_token(refresh_token)
-    result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
-    )
+    result = await db.execute(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
     stored = result.scalar_one_or_none()
     if stored is None or stored.revoked:
         raise ValueError("Token revoked or not found")
@@ -144,18 +138,14 @@ async def refresh_tokens(db: AsyncSession, refresh_token: str) -> tuple[str, str
 async def logout_user(db: AsyncSession, refresh_token: str) -> None:
     """Revoke a refresh token."""
     token_hash = _hash_token(refresh_token)
-    result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
-    )
+    result = await db.execute(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
     stored = result.scalar_one_or_none()
     if stored is not None:
         stored.revoked = True
         await db.commit()
 
 
-async def google_login(
-    db: AsyncSession, google_info: dict
-) -> tuple[User, str, str]:
+async def google_login(db: AsyncSession, google_info: dict) -> tuple[User, str, str]:
     """Handle Google OAuth login/signup. Returns (user, access_token, refresh_token)."""
     google_id = google_info["google_id"]
     email = google_info["email"]

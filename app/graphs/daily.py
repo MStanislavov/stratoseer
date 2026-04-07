@@ -12,7 +12,17 @@ from app.engine.audit_writer import AuditEvent, AuditWriter
 from app.engine.policy_engine import PolicyEngine
 from app.engine.token_tracker import RunTokenTracker
 from app.engine.verifier import Verifier
-from app.graphs.log import _publish_sse, make_fan_out_node, make_job_expiry_validator_node, make_node, make_url_filter_report_node, node_end, node_start, route, warn
+from app.graphs.log import (
+    _publish_sse,
+    make_fan_out_node,
+    make_job_expiry_validator_node,
+    make_node,
+    make_url_filter_report_node,
+    node_end,
+    node_start,
+    route,
+    warn,
+)
 from app.graphs.state import DailyState
 
 _P = "daily"
@@ -42,40 +52,53 @@ def _make_audit_node(
         run_id = state.get("run_id", "unknown")
         now = datetime.now(timezone.utc).isoformat
 
-        await _publish_sse(event_manager, run_id, {
-            "type": "agent_started",
-            "agent": "audit_writer",
-            "timestamp": now(),
-        })
+        await _publish_sse(
+            event_manager,
+            run_id,
+            {
+                "type": "agent_started",
+                "agent": "audit_writer",
+                "timestamp": now(),
+            },
+        )
 
         if audit_writer is None:
             node_start(_P, state, "audit_writer", skipped=True)
-            await _publish_sse(event_manager, run_id, {
-                "type": "agent_completed",
-                "agent": "audit_writer",
-                "verification_status": "pass",
-                "elapsed": 0,
-                "timestamp": now(),
-            })
+            await _publish_sse(
+                event_manager,
+                run_id,
+                {
+                    "type": "agent_completed",
+                    "agent": "audit_writer",
+                    "verification_status": "pass",
+                    "elapsed": 0,
+                    "timestamp": now(),
+                },
+            )
             return {}
 
         node_start(_P, state, "audit_writer")
         import time
+
         t0 = time.monotonic()
 
         run_id = state.get("run_id", "unknown")
         policy_hash = policy_engine.version.hash if policy_engine else ""
 
-        await audit_writer.append(run_id, AuditEvent(
-            timestamp=now(),
-            event_type="agent_start",
-            agent="audit_writer",
-        ))
+        await audit_writer.append(
+            run_id,
+            AuditEvent(
+                timestamp=now(),
+                event_type="agent_start",
+                agent="audit_writer",
+            ),
+        )
 
         # Build verifier report from accumulated results
         verifier_report: dict[str, Any] = {}
         if verifier:
             from app.engine.verifier import AgentVerification, CheckResult, VerificationStatus
+
             verifications: list[AgentVerification] = []
             for vr in state.get("verifier_results", []):
                 checks = [
@@ -86,12 +109,14 @@ def _make_audit_node(
                     )
                     for c in vr.get("checks", [])
                 ]
-                verifications.append(AgentVerification(
-                    agent_name=vr["agent_name"],
-                    status=VerificationStatus(vr["status"]),
-                    checks=checks,
-                    timestamp=vr.get("timestamp", ""),
-                ))
+                verifications.append(
+                    AgentVerification(
+                        agent_name=vr["agent_name"],
+                        status=VerificationStatus(vr["status"]),
+                        checks=checks,
+                        timestamp=vr.get("timestamp", ""),
+                    )
+                )
             verifier_report = verifier.build_report(verifications)
 
         await audit_writer.append(
@@ -128,19 +153,26 @@ def _make_audit_node(
         elapsed = time.monotonic() - t0
         node_end(_P, state, "audit_writer", elapsed)
 
-        await audit_writer.append(run_id, AuditEvent(
-            timestamp=now(),
-            event_type="agent_end",
-            agent="audit_writer",
-        ))
+        await audit_writer.append(
+            run_id,
+            AuditEvent(
+                timestamp=now(),
+                event_type="agent_end",
+                agent="audit_writer",
+            ),
+        )
 
-        await _publish_sse(event_manager, run_id, {
-            "type": "agent_completed",
-            "agent": "audit_writer",
-            "verification_status": "pass",
-            "elapsed": round(elapsed, 2),
-            "timestamp": now(),
-        })
+        await _publish_sse(
+            event_manager,
+            run_id,
+            {
+                "type": "agent_completed",
+                "agent": "audit_writer",
+                "verification_status": "pass",
+                "elapsed": round(elapsed, 2),
+                "timestamp": now(),
+            },
+        )
         return {}
 
     return audit_node
@@ -161,9 +193,14 @@ def _check_scraper_results(state: DailyState) -> str:
         warn(_P, state, "all web scrapers returned empty, entering safe degradation")
         return "safe_degrade"
     route(
-        _P, state, "data_formatter",
-        jobs=len(raw_jobs), certs=len(raw_certs), events=len(raw_events),
-        groups=len(raw_groups), trends=len(raw_trends),
+        _P,
+        state,
+        "data_formatter",
+        jobs=len(raw_jobs),
+        certs=len(raw_certs),
+        events=len(raw_events),
+        groups=len(raw_groups),
+        trends=len(raw_trends),
     )
     return "format"
 
@@ -203,25 +240,58 @@ def build_daily_graph(
 
     graph = StateGraph(DailyState)
 
-    graph.add_node("goal_extractor", make_node(
-        _P, "goal_extractor", goal_extractor, "llm_structured_output",
-        policy_engine, audit_writer, verifier, event_manager,
-        token_tracker=token_tracker,
-    ))
-    graph.add_node("web_scrapers", make_fan_out_node(
-        _P, "web_scrapers", web_scraper, "web_search",
-        _SCRAPER_CATEGORIES,
-        policy_engine, audit_writer, verifier, event_manager,
-        token_tracker=token_tracker,
-    ))
-    graph.add_node("data_formatter", make_node(
-        _P, "data_formatter", data_formatter, "llm_structured_output",
-        policy_engine, audit_writer, verifier, event_manager,
-        token_tracker=token_tracker,
-    ))
-    graph.add_node("job_expiry_check", make_job_expiry_validator_node(_P, audit_writer, event_manager))
-    graph.add_node("url_filter_report", make_url_filter_report_node(_P, audit_writer, event_manager))
-    graph.add_node("audit_writer", _make_audit_node(audit_writer, policy_engine, verifier, event_manager))
+    graph.add_node(
+        "goal_extractor",
+        make_node(
+            _P,
+            "goal_extractor",
+            goal_extractor,
+            "llm_structured_output",
+            policy_engine,
+            audit_writer,
+            verifier,
+            event_manager,
+            token_tracker=token_tracker,
+        ),
+    )
+    graph.add_node(
+        "web_scrapers",
+        make_fan_out_node(
+            _P,
+            "web_scrapers",
+            web_scraper,
+            "web_search",
+            _SCRAPER_CATEGORIES,
+            policy_engine,
+            audit_writer,
+            verifier,
+            event_manager,
+            token_tracker=token_tracker,
+        ),
+    )
+    graph.add_node(
+        "data_formatter",
+        make_node(
+            _P,
+            "data_formatter",
+            data_formatter,
+            "llm_structured_output",
+            policy_engine,
+            audit_writer,
+            verifier,
+            event_manager,
+            token_tracker=token_tracker,
+        ),
+    )
+    graph.add_node(
+        "job_expiry_check", make_job_expiry_validator_node(_P, audit_writer, event_manager)
+    )
+    graph.add_node(
+        "url_filter_report", make_url_filter_report_node(_P, audit_writer, event_manager)
+    )
+    graph.add_node(
+        "audit_writer", _make_audit_node(audit_writer, policy_engine, verifier, event_manager)
+    )
     graph.add_node("safe_degrade", _safe_degrade_node)
 
     graph.set_entry_point("goal_extractor")

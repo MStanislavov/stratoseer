@@ -42,18 +42,18 @@ _REQUIRED_URL_PATTERNS: dict[str, list[str]] = {
 
 # ANSI colors per scraper category for log output
 _CATEGORY_COLORS: dict[str, str] = {
-    "job": "\033[34m",           # blue
-    "cert": "\033[35m",          # magenta
-    "course": "\033[36m",        # cyan
-    "event": "\033[33m",         # yellow
-    "group": "\033[32m",         # green
-    "trend": "\033[37m",         # white
+    "job": "\033[34m",  # blue
+    "cert": "\033[35m",  # magenta
+    "course": "\033[36m",  # cyan
+    "event": "\033[33m",  # yellow
+    "group": "\033[32m",  # green
+    "trend": "\033[37m",  # white
 }
 _RESET = "\033[0m"
 
 _FETCH_BATCH_SIZE = 2
-_FETCH_BATCH_DELAY = 1.5   # seconds between batches
-_RETRY_BACKOFF = 3.0        # seconds before retrying 429s
+_FETCH_BATCH_DELAY = 1.5  # seconds between batches
+_RETRY_BACKOFF = 3.0  # seconds before retrying 429s
 
 
 def _cat_tag(category: str) -> str:
@@ -214,7 +214,8 @@ class WebScraperAgent(LLMAgent):
                 if not tc_name or not tc_id:
                     logger.warning(
                         "Malformed tool_call (type=%s): %s",
-                        type(tool_call).__name__, str(tool_call)[:200],
+                        type(tool_call).__name__,
+                        str(tool_call)[:200],
                     )
                     continue
                 if tc_name == search_tool_name:
@@ -222,26 +223,32 @@ class WebScraperAgent(LLMAgent):
                 tool = tool_map.get(tc_name)
                 if tool is None:
                     logger.warning("Unknown tool call: %s", tc_name)
-                    messages.append({
-                        "role": "tool",
-                        "content": f"Unknown tool: {tc_name}",
-                        "tool_call_id": tc_id,
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "content": f"Unknown tool: {tc_name}",
+                            "tool_call_id": tc_id,
+                        }
+                    )
                     continue
                 tool_result = await tool.ainvoke(tc_args)
-                messages.append({
-                    "role": "tool",
-                    "content": str(tool_result),
-                    "tool_call_id": tc_id,
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "content": str(tool_result),
+                        "tool_call_id": tc_id,
+                    }
+                )
             except Exception:
                 logger.exception("Tool call failed in %s (step %d)", category, step)
                 tc_id_safe = tc_id if tc_id else "unknown"
-                messages.append({
-                    "role": "tool",
-                    "content": "Tool execution error, please continue with other searches.",
-                    "tool_call_id": tc_id_safe,
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "content": "Tool execution error, please continue with other searches.",
+                        "tool_call_id": tc_id_safe,
+                    }
+                )
         return batch_searches
 
     # ------------------------------------------------------------------
@@ -287,7 +294,7 @@ class WebScraperAgent(LLMAgent):
         """
         fetched: list[str | Exception] = []
         for i in range(0, len(items), _FETCH_BATCH_SIZE):
-            batch = items[i:i + _FETCH_BATCH_SIZE]
+            batch = items[i : i + _FETCH_BATCH_SIZE]
             batch_results = await asyncio.gather(
                 *[self._fetch_tool.ainvoke(item.url) for item in batch],
                 return_exceptions=True,
@@ -309,7 +316,10 @@ class WebScraperAgent(LLMAgent):
             elif reason:
                 logger.info(
                     "%s rejected%s: %s -- %s",
-                    _cat_tag(category), attempt_label, item.url, reason,
+                    _cat_tag(category),
+                    attempt_label,
+                    item.url,
+                    reason,
                 )
                 rejected.append(FilteredURL(url=item.url, reason=reason))
             else:
@@ -338,7 +348,8 @@ class WebScraperAgent(LLMAgent):
 
         # Phase 2: fetch surviving URLs and classify
         valid, rate_limited, fetch_rejected = await self._fetch_and_classify_urls(
-            pattern_survivors, category,
+            pattern_survivors,
+            category,
         )
         rejected.extend(fetch_rejected)
 
@@ -349,11 +360,16 @@ class WebScraperAgent(LLMAgent):
             backoff = _RETRY_BACKOFF * attempt
             logger.info(
                 "%s retrying %d rate-limited URLs (attempt %d/3, %.1fs backoff)",
-                _cat_tag(category), len(rate_limited), attempt, backoff,
+                _cat_tag(category),
+                len(rate_limited),
+                attempt,
+                backoff,
             )
             await asyncio.sleep(backoff)
             retry_valid, still_limited, retry_rejected = await self._fetch_and_classify_urls(
-                rate_limited, category, attempt_label=f" (attempt {attempt})",
+                rate_limited,
+                category,
+                attempt_label=f" (attempt {attempt})",
             )
             valid.extend(retry_valid)
             rejected.extend(retry_rejected)
@@ -366,7 +382,10 @@ class WebScraperAgent(LLMAgent):
 
         logger.info(
             "%s URL validation: %d valid, %d rejected out of %d",
-            _cat_tag(category), len(valid), len(rejected), len(results),
+            _cat_tag(category),
+            len(valid),
+            len(rejected),
+            len(results),
         )
         return valid, rejected
 
@@ -389,25 +408,31 @@ class WebScraperAgent(LLMAgent):
         """
         logger.info(
             "%s nudging LLM: %d/%d searches done",
-            _cat_tag(category), search_count, min_searches,
+            _cat_tag(category),
+            search_count,
+            min_searches,
         )
-        messages.append({
-            "role": "user",
-            "content": (
-                f"You have only completed {search_count} out of "
-                f"{min_searches} required searches. You MUST continue "
-                f"searching with different query variations. Do not "
-                f"summarize or stop -- call the search tool now."
-            ),
-        })
+        messages.append(
+            {
+                "role": "user",
+                "content": (
+                    f"You have only completed {search_count} out of "
+                    f"{min_searches} required searches. You MUST continue "
+                    f"searching with different query variations. Do not "
+                    f"summarize or stop -- call the search tool now."
+                ),
+            }
+        )
         response = await llm_with_tools.ainvoke(messages)
         if getattr(response, "usage_metadata", None):
             usages.append({**dict(response.usage_metadata), "model_name": self._model_name})
         messages.append(response)
         if not response.tool_calls:
             logger.warning(
-                "%s LLM refused to continue after nudge "
-                "(%d/%d searches)", _cat_tag(category), search_count, min_searches,
+                "%s LLM refused to continue after nudge (%d/%d searches)",
+                _cat_tag(category),
+                search_count,
+                min_searches,
             )
         return response
 
@@ -439,15 +464,24 @@ class WebScraperAgent(LLMAgent):
                 if search_count >= min_searches or min_searches == 0:
                     break
                 response = await self._nudge_for_more_searches(
-                    messages, category, search_count, min_searches,
-                    llm_with_tools, usages,
+                    messages,
+                    category,
+                    search_count,
+                    min_searches,
+                    llm_with_tools,
+                    usages,
                 )
                 if not response.tool_calls:
                     break
 
             step += 1
             search_count += await self._handle_tool_calls(
-                response, messages, tool_map, search_tool_name, category, step,
+                response,
+                messages,
+                tool_map,
+                search_tool_name,
+                category,
+                step,
             )
             response = await llm_with_tools.ainvoke(messages)
             if getattr(response, "usage_metadata", None):
@@ -528,19 +562,23 @@ class WebScraperAgent(LLMAgent):
         ):
             result_retry += 1
             logger.info(
-                "%s only %d/%d valid results, "
-                "continuing search (retry %d)",
-                _cat_tag(category), len(unique_results), min_results, result_retry,
+                "%s only %d/%d valid results, continuing search (retry %d)",
+                _cat_tag(category),
+                len(unique_results),
+                min_results,
+                result_retry,
             )
-            messages.append({
-                "role": "user",
-                "content": (
-                    f"You found only {len(unique_results)} valid results but "
-                    f"the minimum required is {min_results}. Search for more "
-                    f"with different query terms and job boards. Call the "
-                    f"search tool now."
-                ),
-            })
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        f"You found only {len(unique_results)} valid results but "
+                        f"the minimum required is {min_results}. Search for more "
+                        f"with different query terms and job boards. Call the "
+                        f"search tool now."
+                    ),
+                }
+            )
             response = await llm_with_tools.ainvoke(messages)
             if getattr(response, "usage_metadata", None):
                 usages.append({**dict(response.usage_metadata), "model_name": self._model_name})
@@ -548,23 +586,35 @@ class WebScraperAgent(LLMAgent):
 
             if not response.tool_calls:
                 logger.warning(
-                    "%s LLM refused to search more "
-                    "(%d/%d results, retry %d)",
-                    _cat_tag(category), len(unique_results), min_results, result_retry,
+                    "%s LLM refused to search more (%d/%d results, retry %d)",
+                    _cat_tag(category),
+                    len(unique_results),
+                    min_results,
+                    result_retry,
                 )
                 break
 
             # Continue the tool-calling loop
             response, search_count, step = await self._run_tool_loop(
-                response, messages, llm_with_tools, tool_map,
-                usages, category, max_steps, 0,
-                step=step, search_count=search_count,
+                response,
+                messages,
+                llm_with_tools,
+                tool_map,
+                usages,
+                category,
+                max_steps,
+                0,
+                step=step,
+                search_count=search_count,
             )
             search_context = response.content or ""
 
             # Re-parse and merge new results
             new_unique, new_filtered = await self._parse_and_deduplicate(
-                search_context, seen_urls, prompt, usages,
+                search_context,
+                seen_urls,
+                prompt,
+                usages,
             )
             all_filtered.extend(new_filtered)
 
@@ -592,10 +642,12 @@ class WebScraperAgent(LLMAgent):
         """Log final statistics and return the output dict."""
         tag = _cat_tag(category)
         logger.info(
-            "%s final: %d valid results, %d filtered, "
-            "%d searches, %d steps",
-            tag, len(unique_results), len(all_filtered),
-            search_count, step,
+            "%s final: %d valid results, %d filtered, %d searches, %d steps",
+            tag,
+            len(unique_results),
+            len(all_filtered),
+            search_count,
+            step,
         )
         for r in unique_results:
             logger.info("%s  -> %s  %s", tag, r.title, r.url or "")
@@ -666,20 +718,31 @@ class WebScraperAgent(LLMAgent):
                 messages.append(response)
 
                 response, search_count, step = await self._run_tool_loop(
-                    response, messages, llm_with_tools, tool_map,
-                    usages, category, max_steps, min_searches,
+                    response,
+                    messages,
+                    llm_with_tools,
+                    tool_map,
+                    usages,
+                    category,
+                    max_steps,
+                    min_searches,
                 )
 
                 logger.info(
                     "%s finished tool loop: %d searches, %d steps",
-                    _cat_tag(category), search_count, step,
+                    _cat_tag(category),
+                    search_count,
+                    step,
                 )
                 search_context = response.content or ""
 
             # Parse and deduplicate
             seen_urls: set[str] = set()
             unique_results, all_filtered = await self._parse_and_deduplicate(
-                search_context, seen_urls, user_content, usages,
+                search_context,
+                seen_urls,
+                user_content,
+                usages,
             )
 
             # URL validation via fetch
@@ -688,18 +751,35 @@ class WebScraperAgent(LLMAgent):
             all_filtered.extend(rejected)
 
             # min_results enforcement
-            unique_results, all_filtered, search_count, step = (
-                await self._retry_insufficient_results(
-                    unique_results, all_filtered, seen_urls,
-                    messages, llm_with_tools, tool_map,
-                    usages, category, prompt,
-                    min_results, max_steps, step, search_count,
-                )
+            (
+                unique_results,
+                all_filtered,
+                search_count,
+                step,
+            ) = await self._retry_insufficient_results(
+                unique_results,
+                all_filtered,
+                seen_urls,
+                messages,
+                llm_with_tools,
+                tool_map,
+                usages,
+                category,
+                prompt,
+                min_results,
+                max_steps,
+                step,
+                search_count,
             )
 
             return self._build_output(
-                unique_results, all_filtered, usages,
-                category, result_key, search_count, step,
+                unique_results,
+                all_filtered,
+                usages,
+                category,
+                result_key,
+                search_count,
+                step,
             )
 
         except Exception as exc:

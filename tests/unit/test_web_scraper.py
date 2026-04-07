@@ -8,13 +8,12 @@ import pytest
 
 from app.agents.schemas import FilteredURL, WebScraperOutput, WebScraperResult
 from app.agents.web_scraper import (
+    _MIN_BODY_CHARS,
     WebScraperAgent,
     _check_fetched_content,
     _check_url_pattern,
-    _MIN_BODY_CHARS,
     extract_http_body_and_status,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers to build mock LLM responses
@@ -206,8 +205,11 @@ class TestWebScraperAgentInit:
         fetch = _make_fetch_tool()
         budgets = {"weekly:job": {"max_steps": 10, "min_searches": 3, "min_results": 5}}
         agent = WebScraperAgent(
-            llm=llm, search_tool=search, fetch_tool=fetch,
-            max_steps=8, mode_category_budgets=budgets,
+            llm=llm,
+            search_tool=search,
+            fetch_tool=fetch,
+            max_steps=8,
+            mode_category_budgets=budgets,
         )
         assert agent._max_steps == 8
         assert agent._search_tool is search
@@ -281,12 +283,19 @@ class TestHandleToolCalls:
     async def test_processes_search_tool_call(self, agent):
         search = agent._search_tool
         tool_map = {search.name: search}
-        response = _make_ai_message(tool_calls=[
-            {"name": "web_search", "id": "c1", "args": {"query": "python jobs"}},
-        ])
+        response = _make_ai_message(
+            tool_calls=[
+                {"name": "web_search", "id": "c1", "args": {"query": "python jobs"}},
+            ]
+        )
         messages = []
         count = await agent._handle_tool_calls(
-            response, messages, tool_map, "web_search", "job", 1,
+            response,
+            messages,
+            tool_map,
+            "web_search",
+            "job",
+            1,
         )
         assert count == 1
         assert len(messages) == 1
@@ -296,24 +305,38 @@ class TestHandleToolCalls:
 
     async def test_unknown_tool_appends_error_message(self, agent):
         tool_map = {}
-        response = _make_ai_message(tool_calls=[
-            {"name": "unknown_tool", "id": "c2", "args": {}},
-        ])
+        response = _make_ai_message(
+            tool_calls=[
+                {"name": "unknown_tool", "id": "c2", "args": {}},
+            ]
+        )
         messages = []
         count = await agent._handle_tool_calls(
-            response, messages, tool_map, "web_search", "job", 1,
+            response,
+            messages,
+            tool_map,
+            "web_search",
+            "job",
+            1,
         )
         assert count == 0
         assert "Unknown tool" in messages[0]["content"]
 
     async def test_malformed_tool_call_skipped(self, agent):
         tool_map = {}
-        response = _make_ai_message(tool_calls=[
-            {"args": {"query": "test"}},  # missing name and id
-        ])
+        response = _make_ai_message(
+            tool_calls=[
+                {"args": {"query": "test"}},  # missing name and id
+            ]
+        )
         messages = []
         count = await agent._handle_tool_calls(
-            response, messages, tool_map, "web_search", "job", 1,
+            response,
+            messages,
+            tool_map,
+            "web_search",
+            "job",
+            1,
         )
         assert count == 0
         assert len(messages) == 0
@@ -322,12 +345,19 @@ class TestHandleToolCalls:
         search = agent._search_tool
         search.ainvoke = AsyncMock(side_effect=RuntimeError("network error"))
         tool_map = {search.name: search}
-        response = _make_ai_message(tool_calls=[
-            {"name": "web_search", "id": "c3", "args": {"query": "test"}},
-        ])
+        response = _make_ai_message(
+            tool_calls=[
+                {"name": "web_search", "id": "c3", "args": {"query": "test"}},
+            ]
+        )
         messages = []
         count = await agent._handle_tool_calls(
-            response, messages, tool_map, "web_search", "job", 1,
+            response,
+            messages,
+            tool_map,
+            "web_search",
+            "job",
+            1,
         )
         assert count == 1
         assert "Tool execution error" in messages[0]["content"]
@@ -335,13 +365,20 @@ class TestHandleToolCalls:
     async def test_multiple_tool_calls_counted(self, agent):
         search = agent._search_tool
         tool_map = {search.name: search}
-        response = _make_ai_message(tool_calls=[
-            {"name": "web_search", "id": "c1", "args": {"query": "q1"}},
-            {"name": "web_search", "id": "c2", "args": {"query": "q2"}},
-        ])
+        response = _make_ai_message(
+            tool_calls=[
+                {"name": "web_search", "id": "c1", "args": {"query": "q1"}},
+                {"name": "web_search", "id": "c2", "args": {"query": "q2"}},
+            ]
+        )
         messages = []
         count = await agent._handle_tool_calls(
-            response, messages, tool_map, "web_search", "job", 1,
+            response,
+            messages,
+            tool_map,
+            "web_search",
+            "job",
+            1,
         )
         assert count == 2
         assert len(messages) == 2
@@ -395,7 +432,8 @@ class TestFetchAndClassifyUrls:
     async def test_valid_urls_classified(self, agent):
         items = [WebScraperResult(title="Job", url="https://example.com/job/1")]
         valid, rate_limited, rejected = await agent._fetch_and_classify_urls(
-            items, "cert",
+            items,
+            "cert",
         )
         assert len(valid) == 1
         assert len(rate_limited) == 0
@@ -405,7 +443,8 @@ class TestFetchAndClassifyUrls:
         agent._fetch_tool.ainvoke = AsyncMock(return_value="HTTP 404 Not Found\n\n")
         items = [WebScraperResult(title="Gone", url="https://example.com/gone")]
         valid, _, rejected = await agent._fetch_and_classify_urls(
-            items, "cert",
+            items,
+            "cert",
         )
         assert len(valid) == 0
         assert len(rejected) == 1
@@ -416,7 +455,8 @@ class TestFetchAndClassifyUrls:
         )
         items = [WebScraperResult(title="Limited", url="https://example.com/slow")]
         valid, rate_limited, rejected = await agent._fetch_and_classify_urls(
-            items, "cert",
+            items,
+            "cert",
         )
         assert len(valid) == 0
         assert len(rate_limited) == 1
@@ -425,7 +465,8 @@ class TestFetchAndClassifyUrls:
     async def test_empty_url_goes_to_valid(self, agent):
         items = [WebScraperResult(title="No URL", url="")]
         valid, _, _ = await agent._fetch_and_classify_urls(
-            items, "cert",
+            items,
+            "cert",
         )
         assert len(valid) == 1
 
@@ -433,7 +474,8 @@ class TestFetchAndClassifyUrls:
         agent._fetch_tool.ainvoke = AsyncMock(side_effect=RuntimeError("boom"))
         items = [WebScraperResult(title="Err", url="https://example.com/err")]
         valid, _, rejected = await agent._fetch_and_classify_urls(
-            items, "cert",
+            items,
+            "cert",
         )
         assert len(valid) == 0
         assert len(rejected) == 1
@@ -442,8 +484,7 @@ class TestFetchAndClassifyUrls:
     @patch("app.agents.web_scraper.asyncio.sleep", new_callable=AsyncMock)
     async def test_batching_with_delay(self, mock_sleep, agent):
         items = [
-            WebScraperResult(title=f"Item {i}", url=f"https://example.com/{i}")
-            for i in range(4)
+            WebScraperResult(title=f"Item {i}", url=f"https://example.com/{i}") for i in range(4)
         ]
         valid, _, _ = await agent._fetch_and_classify_urls(items, "cert")
         assert len(valid) == 4
@@ -485,10 +526,12 @@ class TestValidateUrls:
     async def test_rate_limit_retry(self, mock_sleep):
         fetch = _make_fetch_tool()
         # First call returns 429, second call returns 200
-        fetch.ainvoke = AsyncMock(side_effect=[
-            "HTTP 429 Too Many Requests\n\n",
-            "HTTP 200 OK\n\n" + "x" * 2000,
-        ])
+        fetch.ainvoke = AsyncMock(
+            side_effect=[
+                "HTTP 429 Too Many Requests\n\n",
+                "HTTP 200 OK\n\n" + "x" * 2000,
+            ]
+        )
         agent = WebScraperAgent(llm=_make_llm(), fetch_tool=fetch)
         results = [WebScraperResult(title="Retried", url="https://example.com/retry")]
         valid, rejected = await agent._validate_urls(results, "cert")
@@ -525,7 +568,12 @@ class TestNudgeForMoreSearches:
         messages = []
         usages = []
         result = await agent._nudge_for_more_searches(
-            messages, "job", 1, 3, llm_with_tools, usages,
+            messages,
+            "job",
+            1,
+            3,
+            llm_with_tools,
+            usages,
         )
         assert result is response_msg
         # Nudge adds a user message + appends the response
@@ -540,7 +588,12 @@ class TestNudgeForMoreSearches:
 
         usages = []
         await agent._nudge_for_more_searches(
-            [], "job", 0, 2, llm_with_tools, usages,
+            [],
+            "job",
+            0,
+            2,
+            llm_with_tools,
+            usages,
         )
         assert len(usages) == 0
 
@@ -550,7 +603,12 @@ class TestNudgeForMoreSearches:
         llm_with_tools.ainvoke = AsyncMock(return_value=msg)
 
         result = await agent._nudge_for_more_searches(
-            [], "job", 0, 2, llm_with_tools, [],
+            [],
+            "job",
+            0,
+            2,
+            llm_with_tools,
+            [],
         )
         assert result.tool_calls == []
 
@@ -569,7 +627,14 @@ class TestRunToolLoop:
         usages = []
 
         final, search_count, step = await agent._run_tool_loop(
-            response, messages, llm_with_tools, {}, usages, "job", 5, 0,
+            response,
+            messages,
+            llm_with_tools,
+            {},
+            usages,
+            "job",
+            5,
+            0,
         )
         assert final is response
         assert search_count == 0
@@ -580,9 +645,11 @@ class TestRunToolLoop:
         tool_map = {search.name: search}
 
         # First response has tool calls, second does not
-        first_response = _make_ai_message(tool_calls=[
-            {"name": "web_search", "id": "t1", "args": {"query": "test"}},
-        ])
+        first_response = _make_ai_message(
+            tool_calls=[
+                {"name": "web_search", "id": "t1", "args": {"query": "test"}},
+            ]
+        )
         second_response = _make_ai_message(content="Final results", tool_calls=[])
 
         llm_with_tools = AsyncMock()
@@ -591,8 +658,14 @@ class TestRunToolLoop:
         usages = []
 
         final, search_count, step = await agent._run_tool_loop(
-            first_response, messages, llm_with_tools, tool_map,
-            usages, "job", 5, 0,
+            first_response,
+            messages,
+            llm_with_tools,
+            tool_map,
+            usages,
+            "job",
+            5,
+            0,
         )
         assert final is second_response
         assert search_count == 1
@@ -603,15 +676,23 @@ class TestRunToolLoop:
         tool_map = {search.name: search}
 
         # Always return tool calls to keep looping
-        always_tool = _make_ai_message(tool_calls=[
-            {"name": "web_search", "id": "t1", "args": {"query": "loop"}},
-        ])
+        always_tool = _make_ai_message(
+            tool_calls=[
+                {"name": "web_search", "id": "t1", "args": {"query": "loop"}},
+            ]
+        )
         llm_with_tools = AsyncMock()
         llm_with_tools.ainvoke = AsyncMock(return_value=always_tool)
 
         _, _, steps = await agent._run_tool_loop(
-            always_tool, [], llm_with_tools, tool_map,
-            [], "job", 3, 0,
+            always_tool,
+            [],
+            llm_with_tools,
+            tool_map,
+            [],
+            "job",
+            3,
+            0,
         )
         assert steps == 3
 
@@ -626,9 +707,11 @@ class TestRunToolLoop:
         # 1. nudge -> ainvoke returns with_tools (has tool calls)
         # 2. handle tool calls (1 search), ainvoke returns final_resp (no tool calls)
         # 3. search_count=1 < min_searches=2, nudge again -> ainvoke returns refuse
-        with_tools = _make_ai_message(tool_calls=[
-            {"name": "web_search", "id": "n1", "args": {"query": "nudge query"}},
-        ])
+        with_tools = _make_ai_message(
+            tool_calls=[
+                {"name": "web_search", "id": "n1", "args": {"query": "nudge query"}},
+            ]
+        )
         final_resp = _make_ai_message(content="now done", tool_calls=[])
         refuse = _make_ai_message(content="no more", tool_calls=[])
 
@@ -641,8 +724,14 @@ class TestRunToolLoop:
         usages = []
 
         _, search_count, step = await agent._run_tool_loop(
-            no_tools, messages, llm_with_tools, tool_map,
-            usages, "job", 5, 2,
+            no_tools,
+            messages,
+            llm_with_tools,
+            tool_map,
+            usages,
+            "job",
+            5,
+            2,
         )
         assert search_count == 1
         assert step == 1
@@ -663,14 +752,18 @@ class TestParseAndDeduplicate:
         structured_output = WebScraperOutput(results=results, filtered_urls=[])
 
         with patch.object(
-            agent, "_invoke_structured",
+            agent,
+            "_invoke_structured",
             new_callable=AsyncMock,
             return_value=(structured_output, {"input_tokens": 20, "output_tokens": 10}),
         ):
             seen = set()
             usages = []
             unique, filtered = await agent._parse_and_deduplicate(
-                "search text", seen, "prompt", usages,
+                "search text",
+                seen,
+                "prompt",
+                usages,
             )
             assert len(unique) == 2
             assert len(filtered) == 1
@@ -686,13 +779,17 @@ class TestParseAndDeduplicate:
             filtered_urls=[existing_filtered],
         )
         with patch.object(
-            agent, "_invoke_structured",
+            agent,
+            "_invoke_structured",
             new_callable=AsyncMock,
             return_value=(structured_output, None),
         ):
             usages = []
             unique, filtered = await agent._parse_and_deduplicate(
-                "text", set(), "prompt", usages,
+                "text",
+                set(),
+                "prompt",
+                usages,
             )
             assert len(unique) == 1
             assert len(filtered) == 1
@@ -706,12 +803,16 @@ class TestParseAndDeduplicate:
         ]
         structured_output = WebScraperOutput(results=results, filtered_urls=[])
         with patch.object(
-            agent, "_invoke_structured",
+            agent,
+            "_invoke_structured",
             new_callable=AsyncMock,
             return_value=(structured_output, None),
         ):
             unique, filtered = await agent._parse_and_deduplicate(
-                "text", set(), "prompt", [],
+                "text",
+                set(),
+                "prompt",
+                [],
             )
             assert len(unique) == 2
             assert len(filtered) == 0
@@ -720,13 +821,17 @@ class TestParseAndDeduplicate:
         results = [WebScraperResult(title="Already seen", url="https://seen.com")]
         structured_output = WebScraperOutput(results=results, filtered_urls=[])
         with patch.object(
-            agent, "_invoke_structured",
+            agent,
+            "_invoke_structured",
             new_callable=AsyncMock,
             return_value=(structured_output, None),
         ):
             seen = {"https://seen.com"}
             unique, filtered = await agent._parse_and_deduplicate(
-                "text", seen, "prompt", [],
+                "text",
+                seen,
+                "prompt",
+                [],
             )
             assert len(unique) == 0
             assert len(filtered) == 1
@@ -744,8 +849,19 @@ class TestRetryInsufficientResults:
         results = []
         filtered = []
         r, _, sc, _ = await agent._retry_insufficient_results(
-            results, filtered, set(), [], AsyncMock(), {}, [], "job",
-            "prompt", 0, 5, 0, 0,
+            results,
+            filtered,
+            set(),
+            [],
+            AsyncMock(),
+            {},
+            [],
+            "job",
+            "prompt",
+            0,
+            5,
+            0,
+            0,
         )
         assert r == []
         assert sc == 0
@@ -756,8 +872,19 @@ class TestRetryInsufficientResults:
             WebScraperResult(title="B", url="https://b.com"),
         ]
         r, _, sc, _ = await agent._retry_insufficient_results(
-            results, [], set(), [], AsyncMock(), {}, [], "job",
-            "prompt", 2, 5, 0, 0,  # min_results=2 and already have 2
+            results,
+            [],
+            set(),
+            [],
+            AsyncMock(),
+            {},
+            [],
+            "job",
+            "prompt",
+            2,
+            5,
+            0,
+            0,  # min_results=2 and already have 2
         )
         assert len(r) == 2
         assert sc == 0
@@ -779,15 +906,27 @@ class TestRetryInsufficientResults:
         structured_output = WebScraperOutput(results=[new_result], filtered_urls=[])
 
         with patch.object(
-            agent, "_invoke_structured",
+            agent,
+            "_invoke_structured",
             new_callable=AsyncMock,
             return_value=(structured_output, None),
         ):
             search = agent._search_tool
             tool_map = {search.name: search}
             r, _, _, _ = await agent._retry_insufficient_results(
-                results, [], set(), [], llm_with_tools, tool_map,
-                [], "cert", "prompt", 1, 10, 0, 0,
+                results,
+                [],
+                set(),
+                [],
+                llm_with_tools,
+                tool_map,
+                [],
+                "cert",
+                "prompt",
+                1,
+                10,
+                0,
+                0,
             )
             assert len(r) >= 1
 
@@ -799,8 +938,19 @@ class TestRetryInsufficientResults:
         llm_with_tools.ainvoke = AsyncMock(return_value=refuse)
 
         r, _, _, _ = await agent._retry_insufficient_results(
-            results, [], set(), [], llm_with_tools, {}, [], "job",
-            "prompt", 5, 10, 0, 0,
+            results,
+            [],
+            set(),
+            [],
+            llm_with_tools,
+            {},
+            [],
+            "job",
+            "prompt",
+            5,
+            10,
+            0,
+            0,
         )
         assert len(r) == 0
 
@@ -813,8 +963,19 @@ class TestRetryInsufficientResults:
         llm_with_tools.ainvoke = AsyncMock(return_value=refuse)
 
         await agent._retry_insufficient_results(
-            results, [], set(), [], llm_with_tools, {}, [], "job",
-            "prompt", 10, 20, 0, 0,
+            results,
+            [],
+            set(),
+            [],
+            llm_with_tools,
+            {},
+            [],
+            "job",
+            "prompt",
+            10,
+            20,
+            0,
+            0,
         )
         # Should have been invoked once per retry (up to 3) before the LLM refuses
         assert llm_with_tools.ainvoke.await_count <= 3
@@ -822,8 +983,19 @@ class TestRetryInsufficientResults:
     async def test_skips_when_llm_with_tools_is_none(self, agent):
         results = []
         r, _, sc, _ = await agent._retry_insufficient_results(
-            results, [], set(), [], None, {}, [], "job",
-            "prompt", 5, 10, 0, 0,
+            results,
+            [],
+            set(),
+            [],
+            None,
+            {},
+            [],
+            "job",
+            "prompt",
+            5,
+            10,
+            0,
+            0,
         )
         assert len(r) == 0
         assert sc == 0
@@ -839,7 +1011,13 @@ class TestBuildOutput:
         filtered = [FilteredURL(url="https://x.com", reason="dupe")]
         usages = [{"input_tokens": 10}]
         output = agent._build_output(
-            results, filtered, usages, "job", "raw_job_results", 2, 1,
+            results,
+            filtered,
+            usages,
+            "job",
+            "raw_job_results",
+            2,
+            1,
         )
         assert len(output["raw_job_results"]) == 1
         assert output["_token_usage"] == usages
@@ -847,7 +1025,13 @@ class TestBuildOutput:
 
     def test_no_filtered_urls(self, agent):
         output = agent._build_output(
-            [], [], [], "cert", "raw_cert_results", 0, 0,
+            [],
+            [],
+            [],
+            "cert",
+            "raw_cert_results",
+            0,
+            0,
         )
         assert output["raw_cert_results"] == []
         assert "filtered_cert_urls" not in output
@@ -857,7 +1041,13 @@ class TestBuildOutput:
             WebScraperResult(title="B", url="https://b.com", snippet="snip"),
         ]
         output = agent._build_output(
-            results, [], [], "event", "raw_event_results", 1, 1,
+            results,
+            [],
+            [],
+            "event",
+            "raw_event_results",
+            1,
+            1,
         )
         item = output["raw_event_results"][0]
         assert isinstance(item, dict)
@@ -874,15 +1064,20 @@ class TestCallIntegration:
         search = _make_search_tool()
         fetch = _make_fetch_tool()
         return WebScraperAgent(
-            llm=llm, search_tool=search, fetch_tool=fetch, max_steps=3,
+            llm=llm,
+            search_tool=search,
+            fetch_tool=fetch,
+            max_steps=3,
         )
 
     @patch("app.agents.web_scraper.asyncio.sleep", new_callable=AsyncMock)
     async def test_full_call_with_tools(self, mock_sleep, agent):
         # LLM with tools: first call returns a search tool call, second returns final
-        first_msg = _make_ai_message(tool_calls=[
-            {"name": "web_search", "id": "s1", "args": {"query": "python jobs"}},
-        ])
+        first_msg = _make_ai_message(
+            tool_calls=[
+                {"name": "web_search", "id": "s1", "args": {"query": "python jobs"}},
+            ]
+        )
         final_msg = _make_ai_message(content="Found 2 results", tool_calls=[])
 
         llm_with_tools = AsyncMock()
@@ -898,7 +1093,8 @@ class TestCallIntegration:
             filtered_urls=[],
         )
         with patch.object(
-            agent, "_invoke_structured",
+            agent,
+            "_invoke_structured",
             new_callable=AsyncMock,
             return_value=(parsed, {"input_tokens": 50, "output_tokens": 25}),
         ):
@@ -923,7 +1119,8 @@ class TestCallIntegration:
             filtered_urls=[],
         )
         with patch.object(
-            agent, "_invoke_structured",
+            agent,
+            "_invoke_structured",
             new_callable=AsyncMock,
             return_value=(parsed, None),
         ):
@@ -958,7 +1155,8 @@ class TestCallIntegration:
 
         parsed = WebScraperOutput(results=[], filtered_urls=[])
         with patch.object(
-            agent, "_invoke_structured",
+            agent,
+            "_invoke_structured",
             new_callable=AsyncMock,
             return_value=(parsed, None),
         ):
@@ -978,7 +1176,8 @@ class TestCallIntegration:
 
         parsed = WebScraperOutput(results=[], filtered_urls=[])
         with patch.object(
-            agent, "_invoke_structured",
+            agent,
+            "_invoke_structured",
             new_callable=AsyncMock,
             return_value=(parsed, None),
         ):
@@ -996,7 +1195,8 @@ class TestCallIntegration:
 
         parsed = WebScraperOutput(results=[], filtered_urls=[])
         with patch.object(
-            agent, "_invoke_structured",
+            agent,
+            "_invoke_structured",
             new_callable=AsyncMock,
             return_value=(parsed, None),
         ):
@@ -1025,7 +1225,8 @@ class TestCallIntegration:
 
         parsed = WebScraperOutput(results=[], filtered_urls=[])
         with patch.object(
-            agent, "_invoke_structured",
+            agent,
+            "_invoke_structured",
             new_callable=AsyncMock,
             return_value=(parsed, {"input_tokens": 20, "output_tokens": 10}),
         ):
@@ -1064,7 +1265,8 @@ class TestCallIntegration:
             filtered_urls=[],
         )
         with patch.object(
-            agent, "_invoke_structured",
+            agent,
+            "_invoke_structured",
             new_callable=AsyncMock,
             return_value=(parsed, None),
         ):

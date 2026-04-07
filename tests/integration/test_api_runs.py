@@ -99,7 +99,11 @@ async def test_create_run_invalid_mode(client, admin_headers):
         client: The httpx test client.
         admin_headers: Auth headers for the admin user.
     """
-    profile_resp = await client.post("/api/profiles", json={"name": "TestProfile", "preferred_titles": ["Dev"]}, headers=admin_headers)
+    profile_resp = await client.post(
+        "/api/profiles",
+        json={"name": "TestProfile", "preferred_titles": ["Dev"]},
+        headers=admin_headers,
+    )
     profile_id = profile_resp.json()["id"]
 
     resp = await client.post(
@@ -121,8 +125,12 @@ async def test_list_runs(client, db_session, admin_headers):
     """
     profile_id = await _create_complete_profile(client, db_session, admin_headers)
 
-    await client.post(f"/api/profiles/{profile_id}/runs", json={"mode": "daily"}, headers=admin_headers)
-    await client.post(f"/api/profiles/{profile_id}/runs", json={"mode": "daily"}, headers=admin_headers)
+    await client.post(
+        f"/api/profiles/{profile_id}/runs", json={"mode": "daily"}, headers=admin_headers
+    )
+    await client.post(
+        f"/api/profiles/{profile_id}/runs", json={"mode": "daily"}, headers=admin_headers
+    )
 
     resp = await client.get(f"/api/profiles/{profile_id}/runs", headers=admin_headers)
     assert resp.status_code == 200
@@ -163,7 +171,11 @@ async def test_get_run_not_found(client, admin_headers):
         client: The httpx test client.
         admin_headers: Auth headers for the admin user.
     """
-    profile_resp = await client.post("/api/profiles", json={"name": "TestProfile", "preferred_titles": ["Dev"]}, headers=admin_headers)
+    profile_resp = await client.post(
+        "/api/profiles",
+        json={"name": "TestProfile", "preferred_titles": ["Dev"]},
+        headers=admin_headers,
+    )
     profile_id = profile_resp.json()["id"]
 
     resp = await client.get(f"/api/profiles/{profile_id}/runs/nonexistent", headers=admin_headers)
@@ -180,10 +192,16 @@ async def test_get_run_wrong_profile(client, db_session, admin_headers):
         admin_headers: Auth headers for the admin user.
     """
     p1_id = await _create_complete_profile(client, db_session, admin_headers, "Profile1")
-    p2 = await client.post("/api/profiles", json={"name": "Profile2", "preferred_titles": ["Dev"]}, headers=admin_headers)
+    p2 = await client.post(
+        "/api/profiles",
+        json={"name": "Profile2", "preferred_titles": ["Dev"]},
+        headers=admin_headers,
+    )
     p2_id = p2.json()["id"]
 
-    run_resp = await client.post(f"/api/profiles/{p1_id}/runs", json={"mode": "daily"}, headers=admin_headers)
+    run_resp = await client.post(
+        f"/api/profiles/{p1_id}/runs", json={"mode": "daily"}, headers=admin_headers
+    )
     run_id = run_resp.json()["id"]
 
     # Try to access run via wrong profile

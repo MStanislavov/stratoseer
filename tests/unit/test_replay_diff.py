@@ -10,7 +10,6 @@ from app.engine.audit_writer import AuditWriter
 from app.engine.diff import DiffEngine
 from app.engine.replay import ReplayEngine
 
-
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------
@@ -67,8 +66,16 @@ async def _make_bundle(
     """Helper to create a bundle with given entity lists."""
     if jobs is None:
         jobs = [
-            {"title": "Software Engineer at Acme", "company": "Acme", "url": "https://example.com/job/1"},
-            {"title": "Backend Developer at Globex", "company": "Globex", "url": "https://example.com/job/2"},
+            {
+                "title": "Software Engineer at Acme",
+                "company": "Acme",
+                "url": "https://example.com/job/1",
+            },
+            {
+                "title": "Backend Developer at Globex",
+                "company": "Globex",
+                "url": "https://example.com/job/2",
+            },
         ]
     await writer.create_run_bundle(
         run_id=run_id,
@@ -217,9 +224,7 @@ class TestDiffAdditionsRemovals:
     """Tests for detecting additions, removals, and changes between two runs."""
 
     @pytest.mark.asyncio
-    async def test_detects_additions(
-        self, writer: AuditWriter, diff_engine: DiffEngine
-    ) -> None:
+    async def test_detects_additions(self, writer: AuditWriter, diff_engine: DiffEngine) -> None:
         jobs_a = [{"title": "SWE", "company": "Acme"}]
         jobs_b = [
             {"title": "SWE", "company": "Acme"},
@@ -235,9 +240,7 @@ class TestDiffAdditionsRemovals:
         assert result["summary"]["removed"] == 0
 
     @pytest.mark.asyncio
-    async def test_detects_removals(
-        self, writer: AuditWriter, diff_engine: DiffEngine
-    ) -> None:
+    async def test_detects_removals(self, writer: AuditWriter, diff_engine: DiffEngine) -> None:
         jobs_a = [
             {"title": "SWE", "company": "Acme"},
             {"title": "DevOps", "company": "Globex"},
@@ -253,11 +256,23 @@ class TestDiffAdditionsRemovals:
         assert result["summary"]["added"] == 0
 
     @pytest.mark.asyncio
-    async def test_detects_changes(
-        self, writer: AuditWriter, diff_engine: DiffEngine
-    ) -> None:
-        jobs_a = [{"title": "SWE", "company": "Acme", "description": "Build things", "url": "https://example.com/1"}]
-        jobs_b = [{"title": "SWE", "company": "Acme", "description": "Build awesome things", "url": "https://example.com/1-updated"}]
+    async def test_detects_changes(self, writer: AuditWriter, diff_engine: DiffEngine) -> None:
+        jobs_a = [
+            {
+                "title": "SWE",
+                "company": "Acme",
+                "description": "Build things",
+                "url": "https://example.com/1",
+            }
+        ]
+        jobs_b = [
+            {
+                "title": "SWE",
+                "company": "Acme",
+                "description": "Build awesome things",
+                "url": "https://example.com/1-updated",
+            }
+        ]
         await _make_bundle(writer, "diff-a-3", jobs=jobs_a)
         await _make_bundle(writer, "diff-b-3", jobs=jobs_b)
 
@@ -297,9 +312,7 @@ class TestDiffSummary:
     """Tests for the diff summary item counts."""
 
     @pytest.mark.asyncio
-    async def test_item_counts(
-        self, writer: AuditWriter, diff_engine: DiffEngine
-    ) -> None:
+    async def test_item_counts(self, writer: AuditWriter, diff_engine: DiffEngine) -> None:
         jobs_a = [{"title": "A", "company": "X"}]
         jobs_b = [{"title": "B", "company": "Y"}, {"title": "C", "company": "Z"}]
         await _make_bundle(writer, "count-a", jobs=jobs_a)

@@ -157,9 +157,7 @@ async def update_course(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> CourseRead:
     """Rename a course."""
-    item = await result_service.update_result_title(
-        db, Course, profile_id, item_id, body.title
-    )
+    item = await result_service.update_result_title(db, Course, profile_id, item_id, body.title)
     if item is None:
         raise HTTPException(status_code=404, detail=_ITEM_NOT_FOUND)
     return CourseRead.model_validate(item)
@@ -177,9 +175,7 @@ async def update_event(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> EventRead:
     """Rename an event."""
-    item = await result_service.update_result_title(
-        db, Event, profile_id, item_id, body.title
-    )
+    item = await result_service.update_result_title(db, Event, profile_id, item_id, body.title)
     if item is None:
         raise HTTPException(status_code=404, detail=_ITEM_NOT_FOUND)
     return EventRead.model_validate(item)
@@ -197,9 +193,7 @@ async def update_group(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> GroupRead:
     """Rename a group."""
-    item = await result_service.update_result_title(
-        db, Group, profile_id, item_id, body.title
-    )
+    item = await result_service.update_result_title(db, Group, profile_id, item_id, body.title)
     if item is None:
         raise HTTPException(status_code=404, detail=_ITEM_NOT_FOUND)
     return GroupRead.model_validate(item)
@@ -217,9 +211,7 @@ async def update_trend(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> TrendRead:
     """Rename a trend."""
-    item = await result_service.update_result_title(
-        db, Trend, profile_id, item_id, body.title
-    )
+    item = await result_service.update_result_title(db, Trend, profile_id, item_id, body.title)
     if item is None:
         raise HTTPException(status_code=404, detail=_ITEM_NOT_FOUND)
     return TrendRead.model_validate(item)
@@ -270,9 +262,7 @@ async def delete_certification(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> dict[str, str]:
     """Delete a certification."""
-    if not await result_service.delete_result(
-        db, Certification, profile_id, item_id
-    ):
+    if not await result_service.delete_result(db, Certification, profile_id, item_id):
         raise HTTPException(status_code=404, detail=_ITEM_NOT_FOUND)
     return {"detail": "Deleted"}
 

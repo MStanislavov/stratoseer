@@ -1,14 +1,12 @@
 """Unit tests for miscellaneous modules: prompt_loader, search_tool, url_fetch_tool,
 auth dependencies, email, oauth, and main.py helpers."""
 
-import asyncio
 import smtplib
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
-
 
 # ---------------------------------------------------------------------------
 # PromptLoader
@@ -106,7 +104,8 @@ class TestSafeDuckDuckGoSearchTool:
     """
 
     def _make_tool(self, *, timelimit="", max_results=10, backend="google"):
-        """Build a SafeDuckDuckGoSearchTool bypassing the model_validator that imports ddgs.engines."""
+        """Build a SafeDuckDuckGoSearchTool bypassing the
+        model_validator that imports ddgs.engines."""
         from app.llm.search_tool import SafeDuckDuckGoSearchTool
 
         tool = SafeDuckDuckGoSearchTool.model_construct(
@@ -204,7 +203,9 @@ class TestSafeDuckDuckGoSearchTool:
         }
         with patch.dict("sys.modules", {"ddgs.engines": mock_engines_mod}):
             from importlib import reload
+
             import app.llm.search_tool as st
+
             reload(st)
 
             tool = st.SafeDuckDuckGoSearchTool.model_construct(
@@ -257,7 +258,9 @@ class TestURLFetchTool:
 
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        mock_resp.text = "<html><head><style>body{color:red}</style></head><body><p>Content</p></body></html>"
+        mock_resp.text = (
+            "<html><head><style>body{color:red}</style></head><body><p>Content</p></body></html>"
+        )
 
         mock_client = MagicMock()
         mock_client.__enter__ = MagicMock(return_value=mock_client)
@@ -287,6 +290,7 @@ class TestURLFetchTool:
     @patch("app.llm.url_fetch_tool.httpx.Client")
     def test_run_timeout_error(self, mock_client_cls):
         import httpx as _httpx
+
         from app.llm.url_fetch_tool import URLFetchTool
 
         mock_client = MagicMock()
@@ -301,7 +305,7 @@ class TestURLFetchTool:
 
     @patch("app.llm.url_fetch_tool.httpx.Client")
     def test_run_truncates_long_content(self, mock_client_cls):
-        from app.llm.url_fetch_tool import URLFetchTool, _MAX_BODY_CHARS
+        from app.llm.url_fetch_tool import _MAX_BODY_CHARS, URLFetchTool
 
         long_text = "A" * (_MAX_BODY_CHARS + 5000)
         mock_resp = MagicMock()
@@ -368,6 +372,7 @@ class TestAuthDependencies:
     @patch("app.auth.dependencies.decode_token")
     async def test_get_current_user_invalid_token(self, mock_decode):
         from jose import JWTError
+
         from app.auth.dependencies import get_current_user
 
         mock_decode.side_effect = JWTError("bad token")
@@ -459,6 +464,7 @@ class TestAuthDependencies:
     @patch("app.auth.dependencies.decode_token")
     async def test_get_current_user_from_query_invalid(self, mock_decode):
         from jose import JWTError
+
         from app.auth.dependencies import get_current_user_from_query
 
         mock_decode.side_effect = JWTError("expired")
@@ -688,7 +694,9 @@ class TestAuthOAuth:
 
     @patch("app.auth.oauth.httpx.AsyncClient")
     @patch("app.auth.oauth.settings")
-    async def test_exchange_google_code_missing_optional_fields(self, mock_settings, mock_client_cls):
+    async def test_exchange_google_code_missing_optional_fields(
+        self, mock_settings, mock_client_cls
+    ):
         from app.auth.oauth import exchange_google_code
 
         mock_settings.google_client_id = "client-id"
@@ -720,8 +728,9 @@ class TestAuthOAuth:
     @patch("app.auth.oauth.httpx.AsyncClient")
     @patch("app.auth.oauth.settings")
     async def test_exchange_google_code_token_error(self, mock_settings, mock_client_cls):
-        from app.auth.oauth import exchange_google_code
         import httpx as _httpx
+
+        from app.auth.oauth import exchange_google_code
 
         mock_settings.google_client_id = "cid"
         mock_settings.google_client_secret = "cs"

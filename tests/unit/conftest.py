@@ -1,13 +1,13 @@
 """Shared fixtures for unit tests that need a test database."""
 
+from unittest.mock import patch
+
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
-from unittest.mock import patch
-
-from app.db import Base
 
 import app.models  # noqa: F401 -- register all models with metadata
+from app.db import Base
 
 
 @pytest_asyncio.fixture

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -43,9 +43,7 @@ class TestJobExpiryValidator:
 
     @pytest.mark.asyncio
     async def test_valid_job_passes_through(self, node):
-        with patch(
-            "app.graphs.log._fetch_and_check_expiry", return_value=""
-        ):
+        with patch("app.graphs.log._fetch_and_check_expiry", return_value=""):
             state = {"run_id": "r1", "raw_job_results": [_job("SWE", "https://example.com/job/1")]}
             result = await node(state)
 
@@ -80,9 +78,7 @@ class TestJobExpiryValidator:
     @pytest.mark.asyncio
     async def test_fetch_error_fails_open(self, node):
         """Jobs whose URL cannot be fetched should pass through (fail-open)."""
-        with patch(
-            "app.graphs.log._fetch_and_check_expiry", return_value=""
-        ):
+        with patch("app.graphs.log._fetch_and_check_expiry", return_value=""):
             state = {"run_id": "r1", "raw_job_results": [_job("Flaky", "https://down.example.com")]}
             result = await node(state)
 

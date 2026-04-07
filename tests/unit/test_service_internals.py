@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -125,9 +125,7 @@ class TestCreateAgentFactory:
     @patch("app.services.run_service.ChatOpenAI")
     @patch("app.services.run_service.PromptLoader")
     @patch("app.services.run_service.settings")
-    def test_returns_agent_factory(
-        self, mock_settings, mock_pl, mock_chat, mock_search, mock_pe
-    ):
+    def test_returns_agent_factory(self, mock_settings, mock_pl, mock_chat, mock_search, mock_pe):
         from app.services.run_service import create_agent_factory
 
         mock_settings.prompts_dir = "/prompts"
@@ -336,30 +334,64 @@ class TestPersistResults:
 
         result = {
             "formatted_jobs": [
-                {"title": "Engineer", "company": "ACME", "url": "https://acme.com",
-                 "description": "Build", "location": "Remote", "salary_range": "100k",
-                 "source_query": "python"},
+                {
+                    "title": "Engineer",
+                    "company": "ACME",
+                    "url": "https://acme.com",
+                    "description": "Build",
+                    "location": "Remote",
+                    "salary_range": "100k",
+                    "source_query": "python",
+                },
             ],
             "formatted_certifications": [
-                {"title": "AWS SA", "provider": "Amazon", "url": "https://aws.com",
-                 "description": "Cloud cert", "cost": "$300", "duration": "3 months"},
+                {
+                    "title": "AWS SA",
+                    "provider": "Amazon",
+                    "url": "https://aws.com",
+                    "description": "Cloud cert",
+                    "cost": "$300",
+                    "duration": "3 months",
+                },
             ],
             "formatted_courses": [
-                {"title": "Python 101", "platform": "Udemy", "url": "https://udemy.com",
-                 "description": "Learn", "cost": "$20", "duration": "10h"},
+                {
+                    "title": "Python 101",
+                    "platform": "Udemy",
+                    "url": "https://udemy.com",
+                    "description": "Learn",
+                    "cost": "$20",
+                    "duration": "10h",
+                },
             ],
             "formatted_events": [
-                {"title": "PyCon", "organizer": "PSF", "url": "https://pycon.org",
-                 "description": "Conf", "event_date": "2099-05-01", "location": "Remote"},
+                {
+                    "title": "PyCon",
+                    "organizer": "PSF",
+                    "url": "https://pycon.org",
+                    "description": "Conf",
+                    "event_date": "2099-05-01",
+                    "location": "Remote",
+                },
             ],
             "formatted_groups": [
-                {"title": "Python Devs", "platform": "LinkedIn",
-                 "url": "https://linkedin.com", "description": "Group",
-                 "member_count": 500},
+                {
+                    "title": "Python Devs",
+                    "platform": "LinkedIn",
+                    "url": "https://linkedin.com",
+                    "description": "Group",
+                    "member_count": 500,
+                },
             ],
             "formatted_trends": [
-                {"title": "AI Trend", "category": "tech", "url": "https://ai.com",
-                 "description": "Growing", "relevance": "high", "source": "HN"},
+                {
+                    "title": "AI Trend",
+                    "category": "tech",
+                    "url": "https://ai.com",
+                    "description": "Growing",
+                    "relevance": "high",
+                    "source": "HN",
+                },
             ],
         }
 
@@ -405,7 +437,8 @@ class TestPersistResults:
 
 
 class TestExecuteRun:
-    """Tests for the execute_run background task including success, cancellation, and error paths."""
+    """Tests for the execute_run background task including
+    success, cancellation, and error paths."""
 
     def _setup_factory_mock(self):
         """Return (factory_mock, session_mock) for async_session_factory."""
@@ -425,9 +458,18 @@ class TestExecuteRun:
     @patch("app.services.run_service._update_run_status", new_callable=AsyncMock)
     @patch("app.services.run_service.settings")
     async def test_successful_run(
-        self, mock_settings, mock_update, mock_start, mock_load,
-        mock_aw, mock_pe, mock_tt, mock_factory, mock_graph,
-        mock_persist, mock_em,
+        self,
+        mock_settings,
+        mock_update,
+        mock_start,
+        mock_load,
+        mock_aw,
+        mock_pe,
+        mock_tt,
+        mock_factory,
+        mock_graph,
+        mock_persist,
+        mock_em,
     ):
         from app.services.run_service import execute_run
 
@@ -458,10 +500,12 @@ class TestExecuteRun:
         mock_tt.return_value = mock_tt_instance
 
         mock_compiled = AsyncMock()
-        mock_compiled.ainvoke = AsyncMock(return_value={
-            "errors": [],
-            "verifier_results": [{"status": "pass"}],
-        })
+        mock_compiled.ainvoke = AsyncMock(
+            return_value={
+                "errors": [],
+                "verifier_results": [{"status": "pass"}],
+            }
+        )
         mock_graph_instance = MagicMock()
         mock_graph_instance.compile.return_value = mock_compiled
         mock_graph.return_value = mock_graph_instance
@@ -475,7 +519,8 @@ class TestExecuteRun:
         mock_load.assert_called_once_with("prof-1")
         mock_persist.assert_called_once()
         mock_update.assert_called_once_with(
-            "run-1", "completed",
+            "run-1",
+            "completed",
             verifier_status="pass",
         )
         mock_em.close.assert_called_once_with("run-1")
@@ -501,7 +546,12 @@ class TestExecuteRun:
     @patch("app.services.run_service._start_run", new_callable=AsyncMock)
     @patch("app.services.run_service.settings")
     async def test_handles_exception(
-        self, mock_settings, mock_start, mock_load, mock_update, mock_em,
+        self,
+        mock_settings,
+        mock_start,
+        mock_load,
+        mock_update,
+        mock_em,
     ):
         from app.services.run_service import execute_run
 
@@ -534,9 +584,18 @@ class TestExecuteRun:
     @patch("app.services.run_service._update_run_status", new_callable=AsyncMock)
     @patch("app.services.run_service.settings")
     async def test_verifier_status_partial(
-        self, mock_settings, mock_update, mock_start, mock_load,
-        mock_aw, mock_pe, mock_tt, mock_factory_fn, mock_graph,
-        mock_persist, mock_em,
+        self,
+        mock_settings,
+        mock_update,
+        mock_start,
+        mock_load,
+        mock_aw,
+        mock_pe,
+        mock_tt,
+        mock_factory_fn,
+        mock_graph,
+        mock_persist,
+        mock_em,
     ):
         from app.services.run_service import execute_run
 
@@ -544,10 +603,17 @@ class TestExecuteRun:
 
         mock_start.return_value = True
         mock_load.return_value = {
-            "profile_targets": [], "profile_skills": [], "profile_constraints": [],
-            "cv_summary": "", "preferred_titles": [],
-            "industries": [], "locations": [], "work_arrangement": "",
-            "event_attendance": "", "event_topics": [], "target_certifications": [],
+            "profile_targets": [],
+            "profile_skills": [],
+            "profile_constraints": [],
+            "cv_summary": "",
+            "preferred_titles": [],
+            "industries": [],
+            "locations": [],
+            "work_arrangement": "",
+            "event_attendance": "",
+            "event_topics": [],
+            "target_certifications": [],
             "learning_format": "",
         }
 
@@ -560,10 +626,12 @@ class TestExecuteRun:
         mock_tt.return_value = mock_tt_instance
 
         mock_compiled = AsyncMock()
-        mock_compiled.ainvoke = AsyncMock(return_value={
-            "errors": ["partial failure"],
-            "verifier_results": [{"status": "partial"}, {"status": "pass"}],
-        })
+        mock_compiled.ainvoke = AsyncMock(
+            return_value={
+                "errors": ["partial failure"],
+                "verifier_results": [{"status": "partial"}, {"status": "pass"}],
+            }
+        )
         mock_graph_instance = MagicMock()
         mock_graph_instance.compile.return_value = mock_compiled
         mock_graph.return_value = mock_graph_instance
@@ -576,8 +644,9 @@ class TestExecuteRun:
         # verifier_status should be "partial" (not pass, because one result is partial)
         mock_update.assert_called_once()
         call_kwargs = mock_update.call_args
-        assert call_kwargs.kwargs.get("verifier_status") == "partial" or \
-               (len(call_kwargs.args) >= 2 and "partial" in str(call_kwargs))
+        assert call_kwargs.kwargs.get("verifier_status") == "partial" or (
+            len(call_kwargs.args) >= 2 and "partial" in str(call_kwargs)
+        )
 
     @patch("app.services.run_service._running_tasks", {})
     @patch("app.services.run_service.event_manager")
@@ -592,9 +661,18 @@ class TestExecuteRun:
     @patch("app.services.run_service._update_run_status", new_callable=AsyncMock)
     @patch("app.services.run_service.settings")
     async def test_verifier_status_fail(
-        self, mock_settings, mock_update, mock_start, mock_load,
-        mock_aw, mock_pe, mock_tt, mock_factory_fn, mock_graph,
-        mock_persist, mock_em,
+        self,
+        mock_settings,
+        mock_update,
+        mock_start,
+        mock_load,
+        mock_aw,
+        mock_pe,
+        mock_tt,
+        mock_factory_fn,
+        mock_graph,
+        mock_persist,
+        mock_em,
     ):
         from app.services.run_service import execute_run
 
@@ -602,10 +680,17 @@ class TestExecuteRun:
 
         mock_start.return_value = True
         mock_load.return_value = {
-            "profile_targets": [], "profile_skills": [], "profile_constraints": [],
-            "cv_summary": "", "preferred_titles": [],
-            "industries": [], "locations": [], "work_arrangement": "",
-            "event_attendance": "", "event_topics": [], "target_certifications": [],
+            "profile_targets": [],
+            "profile_skills": [],
+            "profile_constraints": [],
+            "cv_summary": "",
+            "preferred_titles": [],
+            "industries": [],
+            "locations": [],
+            "work_arrangement": "",
+            "event_attendance": "",
+            "event_topics": [],
+            "target_certifications": [],
             "learning_format": "",
         }
 
@@ -618,10 +703,12 @@ class TestExecuteRun:
         mock_tt.return_value = mock_tt_instance
 
         mock_compiled = AsyncMock()
-        mock_compiled.ainvoke = AsyncMock(return_value={
-            "errors": [],
-            "verifier_results": [{"status": "fail"}, {"status": "pass"}],
-        })
+        mock_compiled.ainvoke = AsyncMock(
+            return_value={
+                "errors": [],
+                "verifier_results": [{"status": "fail"}, {"status": "pass"}],
+            }
+        )
         mock_graph_instance = MagicMock()
         mock_graph_instance.compile.return_value = mock_compiled
         mock_graph.return_value = mock_graph_instance
@@ -633,8 +720,9 @@ class TestExecuteRun:
 
         mock_update.assert_called_once()
         call_kwargs = mock_update.call_args
-        assert call_kwargs.kwargs.get("verifier_status") == "fail" or \
-               (len(call_kwargs.args) >= 2 and "fail" in str(call_kwargs))
+        assert call_kwargs.kwargs.get("verifier_status") == "fail" or (
+            len(call_kwargs.args) >= 2 and "fail" in str(call_kwargs)
+        )
 
     @patch("app.services.run_service._running_tasks", {"run-1": MagicMock()})
     @patch("app.services.run_service.event_manager")
@@ -643,7 +731,12 @@ class TestExecuteRun:
     @patch("app.services.run_service._start_run", new_callable=AsyncMock)
     @patch("app.services.run_service.settings")
     async def test_handles_cancelled_error(
-        self, mock_settings, mock_start, mock_load, mock_update, mock_em,
+        self,
+        mock_settings,
+        mock_start,
+        mock_load,
+        mock_update,
+        mock_em,
     ):
         from app.services.run_service import execute_run
 
@@ -763,8 +856,14 @@ class TestGenerateCoverLetter:
     @patch("app.services.cover_letter_service.read_cv_content", new_callable=AsyncMock)
     @patch("app.services.cover_letter_service.async_session_factory")
     async def test_success_path(
-        self, mock_factory, mock_read_cv, mock_aw, mock_pe,
-        mock_agent_factory, mock_build, mock_em,
+        self,
+        mock_factory,
+        mock_read_cv,
+        mock_aw,
+        mock_pe,
+        mock_agent_factory,
+        mock_build,
+        mock_em,
     ):
         from app.services.cover_letter_service import generate_cover_letter
 
@@ -809,22 +908,24 @@ class TestGenerateCoverLetter:
 
         # ensure_cv_summary is imported locally from app.services.profile_service
         # _extract_name_from_cv is imported locally from app.agents.cover_letter_agent
-        with patch(
-            "app.services.profile_service.ensure_cv_summary",
-            new_callable=AsyncMock,
-            return_value="CV summary",
-        ), patch(
-            "app.agents.cover_letter_agent._extract_name_from_cv",
-            return_value="Alice Smith",
-        ), patch(
-            "app.services.cover_letter_service.settings"
-        ) as mock_settings:
+        with (
+            patch(
+                "app.services.profile_service.ensure_cv_summary",
+                new_callable=AsyncMock,
+                return_value="CV summary",
+            ),
+            patch(
+                "app.agents.cover_letter_agent._extract_name_from_cv",
+                return_value="Alice Smith",
+            ),
+            patch("app.services.cover_letter_service.settings") as mock_settings,
+        ):
             mock_settings.policy_dir = "/policy"
 
             mock_compiled = AsyncMock()
-            mock_compiled.ainvoke = AsyncMock(return_value={
-                "cover_letter_content": "Dear Hiring Manager, ..."
-            })
+            mock_compiled.ainvoke = AsyncMock(
+                return_value={"cover_letter_content": "Dear Hiring Manager, ..."}
+            )
             mock_graph = MagicMock()
             mock_graph.compile.return_value = mock_compiled
             mock_build.return_value = mock_graph
@@ -907,7 +1008,11 @@ class TestCreateCoverLetterFullPath:
     @patch("app.services.cover_letter_service.resolve_job_opportunity", new_callable=AsyncMock)
     @patch("app.services.cover_letter_service.get_user_api_key", return_value="sk-user-key")
     async def test_full_success_path_with_user_key(
-        self, mock_get_key, mock_resolve, mock_gen, mock_asyncio,
+        self,
+        mock_get_key,
+        mock_resolve,
+        mock_gen,
+        mock_asyncio,
     ):
         from app.schemas.cover_letter import CoverLetterCreate
         from app.services.cover_letter_service import create_cover_letter
@@ -931,7 +1036,7 @@ class TestCreateCoverLetterFullPath:
 
         # After flush/commit/refresh, the CL and Run objects get IDs
         def _refresh(obj):
-            if not hasattr(obj, '_refreshed'):
+            if not hasattr(obj, "_refreshed"):
                 obj._refreshed = True
                 obj.id = "cl-new"
                 obj.profile_id = "prof-1"
@@ -1021,7 +1126,11 @@ class TestBackgroundSummarize:
         await _background_summarize("prof-1")
         mock_ensure.assert_not_called()
 
-    @patch("app.services.profile_service.ensure_cv_summary", new_callable=AsyncMock, side_effect=Exception("LLM down"))
+    @patch(
+        "app.services.profile_service.ensure_cv_summary",
+        new_callable=AsyncMock,
+        side_effect=Exception("LLM down"),
+    )
     @patch("app.services.profile_service.async_session_factory")
     async def test_suppresses_exceptions(self, mock_factory, mock_ensure):
         from app.services.profile_service import _background_summarize
@@ -1063,6 +1172,7 @@ class TestExportProfile:
         assert result["name"] == "Architect"
         assert result["targets"] == ["backend"]
         assert result["skills"] == ["Python"]
+
     async def test_returns_none_when_not_found(self):
         from app.services.profile_service import export_profile
 
@@ -1143,9 +1253,7 @@ class TestExtractSkillsWithAi:
         mock_settings.api_key = "sk-test"
 
         mock_structured = AsyncMock()
-        mock_structured.ainvoke = AsyncMock(
-            return_value=ExtractedSkills(skills=["Python"])
-        )
+        mock_structured.ainvoke = AsyncMock(return_value=ExtractedSkills(skills=["Python"]))
 
         mock_llm = MagicMock()
         mock_llm.with_structured_output.return_value = mock_structured

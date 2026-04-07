@@ -101,9 +101,9 @@ class LLMAgent:
         """
         structured_llm = self._llm.with_structured_output(schema, include_raw=True)
         methods = [
-            (None, "json_schema"),            # default (strictest)
+            (None, "json_schema"),  # default (strictest)
             ("function_calling", "function_calling"),
-            ("json_mode", "json_mode"),        # most lenient
+            ("json_mode", "json_mode"),  # most lenient
         ]
         result = None
         last_exc = None
@@ -113,7 +113,9 @@ class LLMAgent:
                     s_llm = structured_llm
                 else:
                     s_llm = self._llm.with_structured_output(
-                        schema, include_raw=True, method=method_arg,
+                        schema,
+                        include_raw=True,
+                        method=method_arg,
                     )
                 result = await s_llm.ainvoke(messages)
                 last_exc = None
@@ -121,12 +123,13 @@ class LLMAgent:
             except Exception as exc:
                 last_exc = exc
                 tail = (
-                    "Trying next method." if method_arg != "json_mode"
-                    else "All methods exhausted."
+                    "Trying next method." if method_arg != "json_mode" else "All methods exhausted."
                 )
                 logger.warning(
                     "Structured output (%s) failed: %s. %s",
-                    method_label, exc, tail,
+                    method_label,
+                    exc,
+                    tail,
                 )
 
         if result is None:
@@ -164,9 +167,8 @@ class LLMAgent:
         has_usage = raw and getattr(raw, "usage_metadata", None)
         usage = dict(raw.usage_metadata) if has_usage else None
         if usage is not None:
-            usage["model_name"] = (
-                getattr(self._llm, "model_name", None)
-                or getattr(self._llm, "model", "")
+            usage["model_name"] = getattr(self._llm, "model_name", None) or getattr(
+                self._llm, "model", ""
             )
         return parsed, usage
 

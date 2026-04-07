@@ -14,9 +14,7 @@ from app.models.run import Run
 _NO_AUDIT_BUNDLE = "No audit bundle found for this run"
 
 
-async def _get_run_or_raise(
-    db: AsyncSession, run_id: str, profile_id: str
-) -> Run:
+async def _get_run_or_raise(db: AsyncSession, run_id: str, profile_id: str) -> Run:
     """Fetch a run and verify it belongs to the given profile.
 
     Raises LookupError if not found.
@@ -27,9 +25,7 @@ async def _get_run_or_raise(
     return run
 
 
-async def get_audit_trail(
-    db: AsyncSession, profile_id: str, run_id: str
-) -> dict:
+async def get_audit_trail(db: AsyncSession, profile_id: str, run_id: str) -> dict:
     """Return the full audit event log for a run."""
     await _get_run_or_raise(db, run_id, profile_id)
     writer = AuditWriter()
@@ -37,9 +33,7 @@ async def get_audit_trail(
     return {"run_id": run_id, "events": events}
 
 
-async def get_verifier_report(
-    db: AsyncSession, profile_id: str, run_id: str
-) -> dict:
+async def get_verifier_report(db: AsyncSession, profile_id: str, run_id: str) -> dict:
     """Return the verifier report from the run bundle.
 
     Raises LookupError if run or bundle not found.
@@ -52,9 +46,7 @@ async def get_verifier_report(
     return bundle.get("verifier_report", {})
 
 
-async def replay_run(
-    db: AsyncSession, profile_id: str, run_id: str, mode: str
-) -> dict:
+async def replay_run(db: AsyncSession, profile_id: str, run_id: str, mode: str) -> dict:
     """Replay a previous run in strict or refresh mode.
 
     Raises LookupError if run or bundle not found, ValueError on other errors.
@@ -93,9 +85,7 @@ async def replay_run(
     return result
 
 
-async def get_executive_insights(
-    db: AsyncSession, profile_id: str, run_id: str
-) -> dict:
+async def get_executive_insights(db: AsyncSession, profile_id: str, run_id: str) -> dict:
     """Return CEO/CFO insights from a weekly run's audit bundle.
 
     Raises LookupError if run or bundle not found.
@@ -114,9 +104,7 @@ async def get_executive_insights(
     }
 
 
-async def get_token_usage(
-    db: AsyncSession, profile_id: str, run_id: str
-) -> dict:
+async def get_token_usage(db: AsyncSession, profile_id: str, run_id: str) -> dict:
     """Return per-agent token usage for a run.
 
     Reads the audit log and extracts the token_usage_summary event.
@@ -131,9 +119,7 @@ async def get_token_usage(
     raise LookupError("No token usage data found for this run")
 
 
-async def diff_runs(
-    db: AsyncSession, profile_id: str, run_id: str, other_run_id: str
-) -> dict:
+async def diff_runs(db: AsyncSession, profile_id: str, run_id: str, other_run_id: str) -> dict:
     """Return a structured diff between two runs.
 
     Raises LookupError if either run not found.

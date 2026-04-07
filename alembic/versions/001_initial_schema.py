@@ -5,6 +5,7 @@ Revises:
 Create Date: 2026-03-19
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -62,9 +63,7 @@ def upgrade() -> None:
             sa.ForeignKey(_FK_USER_PROFILES_ID),
             nullable=False,
         ),
-        sa.Column(
-            "run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=False
-        ),
+        sa.Column("run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=False),
         sa.Column("title", sa.String(500), nullable=False),
         sa.Column("company", sa.String(500), nullable=True),
         sa.Column("url", sa.String(2000), nullable=True),
@@ -89,9 +88,7 @@ def upgrade() -> None:
             sa.ForeignKey(_FK_USER_PROFILES_ID),
             nullable=False,
         ),
-        sa.Column(
-            "run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=False
-        ),
+        sa.Column("run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=False),
         sa.Column("title", sa.String(500), nullable=False),
         sa.Column("provider", sa.String(500), nullable=True),
         sa.Column("url", sa.String(2000), nullable=True),
@@ -115,9 +112,7 @@ def upgrade() -> None:
             sa.ForeignKey(_FK_USER_PROFILES_ID),
             nullable=False,
         ),
-        sa.Column(
-            "run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=False
-        ),
+        sa.Column("run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=False),
         sa.Column("title", sa.String(500), nullable=False),
         sa.Column("platform", sa.String(500), nullable=True),
         sa.Column("url", sa.String(2000), nullable=True),
@@ -126,9 +121,7 @@ def upgrade() -> None:
         sa.Column("duration", sa.String(200), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index(
-        "ix_courses_profile_run", "courses", ["profile_id", "run_id"]
-    )
+    op.create_index("ix_courses_profile_run", "courses", ["profile_id", "run_id"])
 
     op.create_table(
         "events",
@@ -139,9 +132,7 @@ def upgrade() -> None:
             sa.ForeignKey(_FK_USER_PROFILES_ID),
             nullable=False,
         ),
-        sa.Column(
-            "run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=False
-        ),
+        sa.Column("run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=False),
         sa.Column("title", sa.String(500), nullable=False),
         sa.Column("organizer", sa.String(500), nullable=True),
         sa.Column("url", sa.String(2000), nullable=True),
@@ -150,9 +141,7 @@ def upgrade() -> None:
         sa.Column("location", sa.String(500), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index(
-        "ix_events_profile_run", "events", ["profile_id", "run_id"]
-    )
+    op.create_index("ix_events_profile_run", "events", ["profile_id", "run_id"])
 
     op.create_table(
         "groups",
@@ -163,9 +152,7 @@ def upgrade() -> None:
             sa.ForeignKey(_FK_USER_PROFILES_ID),
             nullable=False,
         ),
-        sa.Column(
-            "run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=False
-        ),
+        sa.Column("run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=False),
         sa.Column("title", sa.String(500), nullable=False),
         sa.Column("platform", sa.String(500), nullable=True),
         sa.Column("url", sa.String(2000), nullable=True),
@@ -173,9 +160,7 @@ def upgrade() -> None:
         sa.Column("member_count", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index(
-        "ix_groups_profile_run", "groups", ["profile_id", "run_id"]
-    )
+    op.create_index("ix_groups_profile_run", "groups", ["profile_id", "run_id"])
 
     op.create_table(
         "trends",
@@ -186,9 +171,7 @@ def upgrade() -> None:
             sa.ForeignKey(_FK_USER_PROFILES_ID),
             nullable=False,
         ),
-        sa.Column(
-            "run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=False
-        ),
+        sa.Column("run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=False),
         sa.Column("title", sa.String(500), nullable=False),
         sa.Column("category", sa.String(500), nullable=True),
         sa.Column("url", sa.String(2000), nullable=True),
@@ -197,9 +180,7 @@ def upgrade() -> None:
         sa.Column("source", sa.String(500), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
     )
-    op.create_index(
-        "ix_trends_profile_run", "trends", ["profile_id", "run_id"]
-    )
+    op.create_index("ix_trends_profile_run", "trends", ["profile_id", "run_id"])
 
     op.create_table(
         "cover_letters",
@@ -216,9 +197,7 @@ def upgrade() -> None:
             sa.ForeignKey("job_opportunities.id"),
             nullable=True,
         ),
-        sa.Column(
-            "run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=True
-        ),
+        sa.Column("run_id", sa.String(36), sa.ForeignKey(_FK_RUNS_ID), nullable=True),
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
     )
@@ -236,9 +215,7 @@ def downgrade() -> None:
     op.drop_table("courses")
     op.drop_index("ix_certifications_profile_run", table_name="certifications")
     op.drop_table("certifications")
-    op.drop_index(
-        "ix_job_opportunities_profile_run", table_name="job_opportunities"
-    )
+    op.drop_index("ix_job_opportunities_profile_run", table_name="job_opportunities")
     op.drop_table("job_opportunities")
     op.drop_table("runs")
     op.drop_table("user_profiles")

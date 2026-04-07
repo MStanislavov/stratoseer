@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -62,7 +62,8 @@ class RunTokenTracker:
         async with self._lock:
             if agent_name not in self._usage:
                 self._usage[agent_name] = AgentTokenUsage(
-                    agent_name=agent_name, model=model,
+                    agent_name=agent_name,
+                    model=model,
                 )
             usage = self._usage[agent_name]
             usage.input_tokens += input_tokens
@@ -91,9 +92,6 @@ class RunTokenTracker:
         """Serialize for audit logging and API responses."""
         return {
             "run_id": self.run_id,
-            "agents": {
-                name: usage.to_dict()
-                for name, usage in self._usage.items()
-            },
+            "agents": {name: usage.to_dict() for name, usage in self._usage.items()},
             "totals": self.get_total(),
         }

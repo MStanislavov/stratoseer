@@ -1,1 +1,1 @@
-"""Service layer providing business logic for profiles, runs, audits, policies, and authentication."""
+"""Service layer: business logic for profiles, runs, audits, policies, and auth."""

@@ -2,21 +2,22 @@
 
 import logging
 import os
-import uvicorn
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from app.api import profiles, runs, audit, results, cover_letters, policies, auth, admin, settings as user_settings
-from app.config import settings as _settings
-from app.db import engine, Base
-from app.services.run_service import recover_orphaned_runs
 
 # Import all models so Base.metadata knows about them
 from app import models  # noqa: F401
+from app.api import admin, audit, auth, cover_letters, policies, profiles, results, runs
+from app.api import settings as user_settings
+from app.config import settings as _settings
+from app.db import Base, engine
+from app.services.run_service import recover_orphaned_runs
 
 # LangSmith tracing
 if _settings.langsmith_tracing and _settings.langsmith_api_key:
@@ -41,31 +42,30 @@ async def _ensure_admin():
     if not _settings.admin_email:
         return
     from sqlalchemy import select, update
-    from app.models.user import User
+
     from app.db import async_session_factory
+    from app.models.user import User
 
     async with async_session_factory() as session:
-        result = await session.execute(
-            select(User).where(User.email == _settings.admin_email)
-        )
+        result = await session.execute(select(User).where(User.email == _settings.admin_email))
         user = result.scalar_one_or_none()
         if user:
             if user.role != "admin":
                 await session.execute(
-                    update(User)
-                    .where(User.email == _settings.admin_email)
-                    .values(role="admin")
+                    update(User).where(User.email == _settings.admin_email).values(role="admin")
                 )
                 await session.commit()
                 logging.getLogger("app").info("Promoted %s to admin", _settings.admin_email)
         else:
-            session.add(User(
-                email=_settings.admin_email,
-                first_name="Admin",
-                last_name="",
-                role="admin",
-                email_verified=True,
-            ))
+            session.add(
+                User(
+                    email=_settings.admin_email,
+                    first_name="Admin",
+                    last_name="",
+                    role="admin",
+                    email_verified=True,
+                )
+            )
             await session.commit()
             logging.getLogger("app").info("Created admin user %s", _settings.admin_email)
 

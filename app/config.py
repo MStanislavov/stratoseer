@@ -84,7 +84,9 @@ class Settings(BaseSettings):
 
     # App
     app_base_url: str = "http://localhost:8000"
-    cors_origins: str = ""  # comma-separated extra origins, e.g. "https://myapp.onrender.com,https://custom.domain"
+    cors_origins: str = (
+        ""  # comma-separated extra origins, e.g. "https://myapp.onrender.com,https://custom.domain"
+    )
     admin_email: str = ""
 
     model_config = {

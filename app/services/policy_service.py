@@ -21,9 +21,7 @@ def list_policies() -> list[PolicyRead]:
         return []
     policies: list[PolicyRead] = []
     for path in sorted(policy_dir.glob("*.yaml")):
-        policies.append(
-            PolicyRead(name=path.stem, content=_load_policy(path))
-        )
+        policies.append(PolicyRead(name=path.stem, content=_load_policy(path)))
     return policies
 
 

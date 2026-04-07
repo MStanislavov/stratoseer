@@ -5,7 +5,6 @@ import hashlib
 import io
 import json
 import logging
-from pathlib import Path
 
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
@@ -115,9 +114,7 @@ async def create_profile(
     return profile_to_read(profile)
 
 
-async def list_profiles(
-    db: AsyncSession, owner_id: str | None = None
-) -> list[ProfileRead]:
+async def list_profiles(db: AsyncSession, owner_id: str | None = None) -> list[ProfileRead]:
     """List profiles ordered by creation date. If owner_id given, filter by owner."""
     query = select(UserProfile).order_by(UserProfile.created_at)
     if owner_id is not None:
@@ -146,7 +143,16 @@ async def update_profile(
     update_data = body.model_dump(exclude_unset=True)
     if "name" in update_data:
         await _check_name_unique(db, profile.owner_id, update_data["name"], exclude_id=profile_id)
-    for field in ("targets", "constraints", "skills", "preferred_titles", "industries", "locations", "event_topics", "target_certifications"):
+    for field in (
+        "targets",
+        "constraints",
+        "skills",
+        "preferred_titles",
+        "industries",
+        "locations",
+        "event_topics",
+        "target_certifications",
+    ):
         if field in update_data:
             update_data[field] = _serialize_list(update_data[field])
 
@@ -165,9 +171,7 @@ async def delete_profile(db: AsyncSession, profile_id: str) -> bool:
         return False
 
     # Collect run IDs for this profile
-    run_rows = await db.execute(
-        select(Run.id).where(Run.profile_id == profile_id)
-    )
+    run_rows = await db.execute(select(Run.id).where(Run.profile_id == profile_id))
     run_ids = [r for (r,) in run_rows.all()]
 
     # Delete in FK-safe order: cover letters first (FK -> job_opportunities),
@@ -239,9 +243,7 @@ async def ensure_cv_summary(db: AsyncSession, profile: UserProfile) -> str:
     if profile.cv_data is None:
         return ""
 
-    cv_hash = await asyncio.to_thread(
-        lambda: hashlib.sha256(profile.cv_data).hexdigest()
-    )
+    cv_hash = await asyncio.to_thread(lambda: hashlib.sha256(profile.cv_data).hexdigest())
 
     if profile.cv_summary is not None and profile.cv_summary_hash == cv_hash:
         return profile.cv_summary
@@ -255,9 +257,7 @@ async def ensure_cv_summary(db: AsyncSession, profile: UserProfile) -> str:
 
         summary = await summarize_cv(raw_text, settings.api_key)
     except Exception:
-        logger.warning(
-            "LLM summarization failed for profile %s, using raw text", profile.id
-        )
+        logger.warning("LLM summarization failed for profile %s, using raw text", profile.id)
         summary = raw_text
 
     profile.cv_summary = summary
@@ -288,11 +288,10 @@ async def export_profile(db: AsyncSession, profile_id: str) -> dict | None:
     }
 
 
-async def import_profile(
-    db: AsyncSession, data: dict, owner_id: str | None = None
-) -> ProfileRead:
+async def import_profile(db: AsyncSession, data: dict, owner_id: str | None = None) -> ProfileRead:
     """Import a profile from exported data. Creates a new profile."""
     from app.schemas.profile import ProfileCreate
+
     body = ProfileCreate(
         name=data.get("name", "Imported Profile"),
         targets=data.get("targets"),
@@ -335,9 +334,7 @@ async def extract_skills_with_ai(cv_text: str) -> list[str]:
     return result.skills
 
 
-async def extract_skills_from_cv(
-    db: AsyncSession, profile_id: str
-) -> ExtractedSkills:
+async def extract_skills_from_cv(db: AsyncSession, profile_id: str) -> ExtractedSkills:
     """Extract skills from profile's CV. Raises LookupError or ValueError."""
     profile = await db.get(UserProfile, profile_id)
     if profile is None:

@@ -12,6 +12,7 @@ class RegisterRequest(BaseModel):
     Use this schema to validate registration form submissions. Password strength
     rules are enforced via a field validator requiring mixed case and digits.
     """
+
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
@@ -39,6 +40,7 @@ class RegisterRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     """Request body for user login with email and password credentials."""
+
     email: EmailStr
     password: str
 
@@ -67,6 +69,7 @@ class UserRead(BaseModel):
 
 class TokenResponse(BaseModel):
     """Response body containing access and refresh tokens after successful authentication."""
+
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
@@ -75,11 +78,13 @@ class TokenResponse(BaseModel):
 
 class RefreshRequest(BaseModel):
     """Request body for refreshing an expired access token using a refresh token."""
+
     refresh_token: str
 
 
 class ForgotPasswordRequest(BaseModel):
     """Request body for initiating a password reset flow via email."""
+
     email: EmailStr
 
 
@@ -89,6 +94,7 @@ class ResetPasswordRequest(BaseModel):
     Use this schema to validate password reset submissions. Password strength
     rules are enforced via a field validator requiring mixed case and digits.
     """
+
     token: str
     password: str = Field(..., min_length=8, max_length=128)
 
@@ -114,6 +120,7 @@ class ResetPasswordRequest(BaseModel):
 
 class VerifyEmailRequest(BaseModel):
     """Request body for verifying a user's email address using a verification token."""
+
     token: str
 
 

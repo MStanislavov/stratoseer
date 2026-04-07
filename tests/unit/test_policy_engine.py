@@ -9,7 +9,6 @@ import yaml
 
 from app.engine.policy_engine import Budget, PolicyEngine
 
-
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------
@@ -36,8 +35,18 @@ def policy_dir(tmp_path: Path) -> Path:
     }
     budgets = {
         "agents": {
-            "goal_extractor": {"max_steps": 3, "max_input_tokens": 4000, "max_output_tokens": 2000, "type": "llm"},
-            "web_scraper": {"max_steps": 5, "max_input_tokens": 100000, "max_output_tokens": 16000, "type": "llm"},
+            "goal_extractor": {
+                "max_steps": 3,
+                "max_input_tokens": 4000,
+                "max_output_tokens": 2000,
+                "type": "llm",
+            },
+            "web_scraper": {
+                "max_steps": 5,
+                "max_input_tokens": 100000,
+                "max_output_tokens": 16000,
+                "type": "llm",
+            },
             "audit_writer": {"max_steps": 5, "type": "deterministic"},
         },
         "global": {"max_output_items": 50},
@@ -49,8 +58,20 @@ def policy_dir(tmp_path: Path) -> Path:
                 "outputs": ["search_prompts"],
             },
             "data_formatter": {
-                "inputs": ["raw_job_results", "raw_cert_results", "raw_event_results", "raw_trend_results"],
-                "outputs": ["formatted_jobs", "formatted_certifications", "formatted_courses", "formatted_events", "formatted_groups", "formatted_trends"],
+                "inputs": [
+                    "raw_job_results",
+                    "raw_cert_results",
+                    "raw_event_results",
+                    "raw_trend_results",
+                ],
+                "outputs": [
+                    "formatted_jobs",
+                    "formatted_certifications",
+                    "formatted_courses",
+                    "formatted_events",
+                    "formatted_groups",
+                    "formatted_trends",
+                ],
             },
         }
     }

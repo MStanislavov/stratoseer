@@ -2,20 +2,19 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.engine.audit_writer import AuditEvent, AuditWriter
+from app.engine.audit_writer import AuditWriter
 from app.engine.policy_engine import PolicyEngine
 from app.engine.token_tracker import RunTokenTracker
 from app.engine.verifier import (
     AgentVerification,
     CheckResult,
-    Verifier,
     VerificationStatus,
+    Verifier,
 )
 from app.graphs.log import (
     _accumulate_verifier_results,
@@ -29,7 +28,6 @@ from app.graphs.log import (
     make_node,
     make_url_filter_report_node,
 )
-
 
 # ------------------------------------------------------------------
 # Mock agent helpers
@@ -76,7 +74,8 @@ def _make_mock_factory(
     )
     factory.create_data_formatter.return_value = _make_async_agent(
         "data_formatter",
-        formatter_result or {
+        formatter_result
+        or {
             "formatted_jobs": [],
             "formatted_certifications": [],
             "formatted_courses": [],
@@ -229,16 +228,28 @@ class TestWriteAuditEnd:
     async def test_noop_when_no_audit_writer(self):
         """Verify _write_audit_end is a no-op when audit_writer is None."""
         await _write_audit_end(
-            None, "r1", lambda: "ts", "agent_end", "agent", "agent", {}, {},
+            None,
+            "r1",
+            lambda: "ts",
+            "agent_end",
+            "agent",
+            "agent",
+            {},
+            {},
         )
 
     async def test_writes_agent_end_event(self):
         """Verify _write_audit_end writes an agent_end audit event."""
         aw = AsyncMock(spec=AuditWriter)
         await _write_audit_end(
-            aw, "r1", lambda: "2026-01-01",
-            "agent_end", "goal_extractor", "agent",
-            {"some": "data"}, {},
+            aw,
+            "r1",
+            lambda: "2026-01-01",
+            "agent_end",
+            "goal_extractor",
+            "agent",
+            {"some": "data"},
+            {},
         )
         # Only agent_end, no verifier_result (empty dict is falsy)
         assert aw.append.await_count == 1
@@ -252,9 +263,14 @@ class TestWriteAuditEnd:
         aw = AsyncMock(spec=AuditWriter)
         vdict = {"agent_name": "test", "status": "pass", "checks": []}
         await _write_audit_end(
-            aw, "r1", lambda: "2026-01-01",
-            "agent_end", "agent", "agent",
-            {}, vdict,
+            aw,
+            "r1",
+            lambda: "2026-01-01",
+            "agent_end",
+            "agent",
+            "agent",
+            {},
+            vdict,
         )
         assert aw.append.await_count == 2
         second_event = aw.append.await_args_list[1][0][1]
@@ -371,7 +387,9 @@ class TestMakeNode:
     async def test_verifier_integration(self):
         agent = _make_async_agent("goal_extractor", {"search_prompts": {}})
         mock_check = CheckResult(
-            check_name="check", status=VerificationStatus.PASS, message="ok",
+            check_name="check",
+            status=VerificationStatus.PASS,
+            message="ok",
         )
         mock_verification = AgentVerification(
             agent_name="goal_extractor",
@@ -383,7 +401,10 @@ class TestMakeNode:
         verifier.verify.return_value = mock_verification
 
         node_fn = make_node(
-            "p", "goal_extractor", agent, "llm_structured_output",
+            "p",
+            "goal_extractor",
+            agent,
+            "llm_structured_output",
             verifier=verifier,
         )
         result = await node_fn({"run_id": "r1"})
@@ -394,8 +415,12 @@ class TestMakeNode:
         agent = _make_async_agent("validator", {"ok": True})
         mgr = AsyncMock()
         node_fn = make_node(
-            "p", "validator", agent, "tool",
-            event_manager=mgr, node_type="static_validator",
+            "p",
+            "validator",
+            agent,
+            "tool",
+            event_manager=mgr,
+            node_type="static_validator",
         )
         await node_fn({"run_id": "r1"})
         started_event = mgr.publish.await_args_list[0][0][1]
@@ -404,7 +429,10 @@ class TestMakeNode:
     async def test_token_tracking(self):
         agent = _make_async_agent(
             "agent",
-            {"val": 1, "_token_usage": [{"model_name": "gpt-4", "input_tokens": 10, "output_tokens": 5}]},
+            {
+                "val": 1,
+                "_token_usage": [{"model_name": "gpt-4", "input_tokens": 10, "output_tokens": 5}],
+            },
         )
         tracker = AsyncMock(spec=RunTokenTracker)
         node_fn = make_node("p", "agent", agent, "tool", token_tracker=tracker)
@@ -430,10 +458,12 @@ class TestMakeFanOutNode:
 
         categories = [("job", "job_prompt"), ("cert", "cert_prompt")]
         node_fn = make_fan_out_node("p", "web_scrapers", scraper, "web_search", categories)
-        result = await node_fn({
-            "run_id": "r1",
-            "search_prompts": {"job_prompt": "find jobs", "cert_prompt": "find certs"},
-        })
+        result = await node_fn(
+            {
+                "run_id": "r1",
+                "search_prompts": {"job_prompt": "find jobs", "cert_prompt": "find certs"},
+            }
+        )
         assert len(result["raw_job_results"]) == 1
         assert len(result["raw_cert_results"]) == 1
 
@@ -456,7 +486,11 @@ class TestMakeFanOutNode:
         pe.is_tool_allowed.return_value = False
         categories = [("job", "job_prompt")]
         node_fn = make_fan_out_node(
-            "p", "scrapers", scraper, "web_search", categories,
+            "p",
+            "scrapers",
+            scraper,
+            "web_search",
+            categories,
             policy_engine=pe,
         )
         with pytest.raises(PermissionError):
@@ -467,7 +501,11 @@ class TestMakeFanOutNode:
         mgr = AsyncMock()
         categories = [("job", "job_prompt")]
         node_fn = make_fan_out_node(
-            "p", "scrapers", scraper, "web_search", categories,
+            "p",
+            "scrapers",
+            scraper,
+            "web_search",
+            categories,
             event_manager=mgr,
         )
         await node_fn({"run_id": "r1", "search_prompts": {}})
@@ -484,7 +522,11 @@ class TestMakeFanOutNode:
 
         categories = [("job", "job_prompt")]
         node_fn = make_fan_out_node(
-            "p", "scrapers", default_scraper, "web_search", categories,
+            "p",
+            "scrapers",
+            default_scraper,
+            "web_search",
+            categories,
             scraper_overrides={"job": override_scraper},
         )
         result = await node_fn({"run_id": "r1", "search_prompts": {}})
@@ -819,19 +861,33 @@ class TestCoverLetterAuditNode:
 # Imports for internal functions from each graph module
 # ------------------------------------------------------------------
 
+from app.graphs.cover_letter import (
+    _make_audit_node as cl_make_audit_node,
+)
+from app.graphs.cover_letter import (
+    build_cover_letter_graph,
+)
 from app.graphs.daily import (
     _check_scraper_results as daily_check_scraper_results,
+)
+from app.graphs.daily import (
     _make_audit_node as daily_make_audit_node,
+)
+from app.graphs.daily import (
     _safe_degrade_node as daily_safe_degrade_node,
+)
+from app.graphs.daily import (
     build_daily_graph,
 )
 from app.graphs.weekly import (
     _check_scraper_results as weekly_check_scraper_results,
-    _make_audit_node as weekly_make_audit_node,
-    _safe_degrade_node as weekly_safe_degrade_node,
-    build_weekly_graph,
 )
-from app.graphs.cover_letter import (
-    _make_audit_node as cl_make_audit_node,
-    build_cover_letter_graph,
+from app.graphs.weekly import (
+    _make_audit_node as weekly_make_audit_node,
+)
+from app.graphs.weekly import (
+    _safe_degrade_node as weekly_safe_degrade_node,
+)
+from app.graphs.weekly import (
+    build_weekly_graph,
 )

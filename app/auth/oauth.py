@@ -35,7 +35,10 @@ def get_google_auth_url(redirect_uri: str) -> str:
 
 
 async def exchange_google_code(code: str, redirect_uri: str) -> dict:
-    """Exchange authorization code for user info. Returns dict with email, first_name, last_name, google_id."""
+    """Exchange authorization code for user info.
+
+    Returns dict with email, first_name, last_name, google_id.
+    """
     async with httpx.AsyncClient() as client:
         token_resp = await client.post(
             GOOGLE_TOKEN_URL,

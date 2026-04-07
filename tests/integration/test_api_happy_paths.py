@@ -21,7 +21,6 @@ from app.models.run import Run
 from app.models.trend import Trend
 from app.models.user import User
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -192,9 +191,7 @@ class TestProfileHappyPaths:
         assert create.status_code == 201
         pid = create.json()["id"]
 
-        resp = await client.get(
-            f"/api/profiles/{pid}/export", headers=admin_headers
-        )
+        resp = await client.get(f"/api/profiles/{pid}/export", headers=admin_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["name"] == "Export Me"
@@ -211,9 +208,7 @@ class TestProfileHappyPaths:
             "skills": ["aws", "gcp"],
             "preferred_titles": ["Cloud Architect"],
         }
-        resp = await client.post(
-            "/api/profiles/import", json=payload, headers=admin_headers
-        )
+        resp = await client.post("/api/profiles/import", json=payload, headers=admin_headers)
         assert resp.status_code == 201
         data = resp.json()
         assert data["name"] == "Imported Profile"
@@ -225,14 +220,10 @@ class TestProfileHappyPaths:
     async def test_import_profile_duplicate_name_409(self, client, admin_headers):
         """Importing a profile with a duplicate name returns 409."""
         payload = {"name": "DuplicateImport", "preferred_titles": ["Dev"]}
-        resp1 = await client.post(
-            "/api/profiles/import", json=payload, headers=admin_headers
-        )
+        resp1 = await client.post("/api/profiles/import", json=payload, headers=admin_headers)
         assert resp1.status_code == 201
 
-        resp2 = await client.post(
-            "/api/profiles/import", json=payload, headers=admin_headers
-        )
+        resp2 = await client.post("/api/profiles/import", json=payload, headers=admin_headers)
         assert resp2.status_code == 409
 
     @pytest.mark.asyncio
@@ -252,17 +243,11 @@ class TestProfileHappyPaths:
             headers=admin_headers,
         )
         pid = create.json()["id"]
-        exported = (
-            await client.get(
-                f"/api/profiles/{pid}/export", headers=admin_headers
-            )
-        ).json()
+        exported = (await client.get(f"/api/profiles/{pid}/export", headers=admin_headers)).json()
 
         # Change name to avoid 409
         exported["name"] = "RoundTrip Copy"
-        imported = await client.post(
-            "/api/profiles/import", json=exported, headers=admin_headers
-        )
+        imported = await client.post("/api/profiles/import", json=exported, headers=admin_headers)
         assert imported.status_code == 201
         data = imported.json()
         assert data["targets"] == ["backend"]
@@ -574,9 +559,7 @@ class TestRunHappyPaths:
         db_session.add(run2)
         await db_session.commit()
 
-        resp = await client.get(
-            f"/api/profiles/{profile.id}/runs", headers=admin_headers
-        )
+        resp = await client.get(f"/api/profiles/{profile.id}/runs", headers=admin_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 2
@@ -615,12 +598,8 @@ class TestCoverLetterHappyPaths:
     async def test_list_cover_letters_with_data(self, client, db_session, admin_headers):
         """Listing cover letters returns them in reverse chronological order."""
         _, profile, run = await _make_profile_and_run(db_session, suffix="cllist1")
-        cl1 = CoverLetter(
-            profile_id=profile.id, run_id=run.id, content="Letter one"
-        )
-        cl2 = CoverLetter(
-            profile_id=profile.id, run_id=run.id, content="Letter two"
-        )
+        cl1 = CoverLetter(profile_id=profile.id, run_id=run.id, content="Letter one")
+        cl2 = CoverLetter(profile_id=profile.id, run_id=run.id, content="Letter two")
         db_session.add(cl1)
         db_session.add(cl2)
         await db_session.commit()
@@ -637,9 +616,7 @@ class TestCoverLetterHappyPaths:
     async def test_get_cover_letter_success(self, client, db_session, admin_headers):
         """GET a specific cover letter by ID."""
         _, profile, run = await _make_profile_and_run(db_session, suffix="clget1")
-        cl = CoverLetter(
-            profile_id=profile.id, run_id=run.id, content="Dear hiring manager..."
-        )
+        cl = CoverLetter(profile_id=profile.id, run_id=run.id, content="Dear hiring manager...")
         db_session.add(cl)
         await db_session.commit()
         await db_session.refresh(cl)
@@ -691,9 +668,7 @@ class TestCoverLetterHappyPaths:
     async def test_delete_cover_letter_success(self, client, db_session, admin_headers):
         """DELETE an existing cover letter returns 204."""
         _, profile, run = await _make_profile_and_run(db_session, suffix="cldel1")
-        cl = CoverLetter(
-            profile_id=profile.id, run_id=run.id, content="To be deleted"
-        )
+        cl = CoverLetter(profile_id=profile.id, run_id=run.id, content="To be deleted")
         db_session.add(cl)
         await db_session.commit()
         await db_session.refresh(cl)
@@ -913,9 +888,7 @@ class TestAdminHappyPaths:
         assert len(data["users"]) >= 1
 
     @pytest.mark.asyncio
-    async def test_list_users_has_profile_and_run_counts(
-        self, client, db_session, admin_headers
-    ):
+    async def test_list_users_has_profile_and_run_counts(self, client, db_session, admin_headers):
         """User rows include profile_count and run_count."""
         resp = await client.get("/api/admin/users", headers=admin_headers)
         assert resp.status_code == 200
@@ -943,9 +916,7 @@ class TestCrossProfileRuns:
         """GET /api/runs respects limit parameter."""
         _, profile, _ = await _make_profile_and_run(db_session, suffix="xrun1")
         for _ in range(3):
-            db_session.add(
-                Run(profile_id=profile.id, mode="daily", status="completed")
-            )
+            db_session.add(Run(profile_id=profile.id, mode="daily", status="completed"))
         await db_session.commit()
 
         resp = await client.get("/api/runs?limit=2", headers=admin_headers)
@@ -978,8 +949,12 @@ class TestResultsListFiltered:
         db_session.add(run2)
         await db_session.flush()
 
-        db_session.add(Certification(profile_id=profile.id, run_id=run1.id, title="C1", provider="P"))
-        db_session.add(Certification(profile_id=profile.id, run_id=run2.id, title="C2", provider="P"))
+        db_session.add(
+            Certification(profile_id=profile.id, run_id=run1.id, title="C1", provider="P")
+        )
+        db_session.add(
+            Certification(profile_id=profile.id, run_id=run2.id, title="C2", provider="P")
+        )
         await db_session.commit()
 
         resp = await client.get(

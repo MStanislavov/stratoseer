@@ -47,11 +47,13 @@ class DiffEngine:
                 if a.get(key) != b.get(key):
                     diffs[key] = {"old": a.get(key), "new": b.get(key)}
             if diffs:
-                changes.append({
-                    "title": a.get("title", ""),
-                    "entity_type": entity_type,
-                    "changes": diffs,
-                })
+                changes.append(
+                    {
+                        "title": a.get("title", ""),
+                        "entity_type": entity_type,
+                        "changes": diffs,
+                    }
+                )
 
         return additions, removals, changes, len(items_a), len(items_b)
 

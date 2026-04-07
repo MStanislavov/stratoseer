@@ -13,7 +13,12 @@ async def test_create_profile(client, admin_headers):
     """
     resp = await client.post(
         "/api/profiles",
-        json={"name": "Architect", "targets": ["cloud", "infra"], "skills": ["aws"], "preferred_titles": ["Cloud Architect"]},
+        json={
+            "name": "Architect",
+            "targets": ["cloud", "infra"],
+            "skills": ["aws"],
+            "preferred_titles": ["Cloud Architect"],
+        },
         headers=admin_headers,
     )
     assert resp.status_code == 201
@@ -35,7 +40,11 @@ async def test_create_profile_minimal(client, admin_headers):
         client: The httpx test client.
         admin_headers: Auth headers for the admin user.
     """
-    resp = await client.post("/api/profiles", json={"name": "Developer", "preferred_titles": ["Developer"]}, headers=admin_headers)
+    resp = await client.post(
+        "/api/profiles",
+        json={"name": "Developer", "preferred_titles": ["Developer"]},
+        headers=admin_headers,
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert data["name"] == "Developer"
@@ -50,7 +59,9 @@ async def test_create_profile_missing_name(client, admin_headers):
         client: The httpx test client.
         admin_headers: Auth headers for the admin user.
     """
-    resp = await client.post("/api/profiles", json={"preferred_titles": ["Dev"]}, headers=admin_headers)
+    resp = await client.post(
+        "/api/profiles", json={"preferred_titles": ["Dev"]}, headers=admin_headers
+    )
     assert resp.status_code == 422
 
 
@@ -62,7 +73,9 @@ async def test_create_profile_empty_name(client, admin_headers):
         client: The httpx test client.
         admin_headers: Auth headers for the admin user.
     """
-    resp = await client.post("/api/profiles", json={"name": "", "preferred_titles": ["Dev"]}, headers=admin_headers)
+    resp = await client.post(
+        "/api/profiles", json={"name": "", "preferred_titles": ["Dev"]}, headers=admin_headers
+    )
     assert resp.status_code == 422
 
 
@@ -74,7 +87,11 @@ async def test_create_profile_name_too_long(client, admin_headers):
         client: The httpx test client.
         admin_headers: Auth headers for the admin user.
     """
-    resp = await client.post("/api/profiles", json={"name": "x" * 201, "preferred_titles": ["Dev"]}, headers=admin_headers)
+    resp = await client.post(
+        "/api/profiles",
+        json={"name": "x" * 201, "preferred_titles": ["Dev"]},
+        headers=admin_headers,
+    )
     assert resp.status_code == 422
 
 
@@ -86,8 +103,12 @@ async def test_list_profiles(client, admin_headers):
         client: The httpx test client.
         admin_headers: Auth headers for the admin user.
     """
-    await client.post("/api/profiles", json={"name": "Alpha", "preferred_titles": ["Dev"]}, headers=admin_headers)
-    await client.post("/api/profiles", json={"name": "Beta", "preferred_titles": ["Dev"]}, headers=admin_headers)
+    await client.post(
+        "/api/profiles", json={"name": "Alpha", "preferred_titles": ["Dev"]}, headers=admin_headers
+    )
+    await client.post(
+        "/api/profiles", json={"name": "Beta", "preferred_titles": ["Dev"]}, headers=admin_headers
+    )
     resp = await client.get("/api/profiles", headers=admin_headers)
     assert resp.status_code == 200
     data = resp.json()
@@ -105,7 +126,9 @@ async def test_get_profile(client, admin_headers):
         admin_headers: Auth headers for the admin user.
     """
     create_resp = await client.post(
-        "/api/profiles", json={"name": "Architect", "skills": ["python"], "preferred_titles": ["Architect"]}, headers=admin_headers
+        "/api/profiles",
+        json={"name": "Architect", "skills": ["python"], "preferred_titles": ["Architect"]},
+        headers=admin_headers,
     )
     profile_id = create_resp.json()["id"]
     resp = await client.get(f"/api/profiles/{profile_id}", headers=admin_headers)
@@ -135,7 +158,9 @@ async def test_update_profile(client, admin_headers):
         admin_headers: Auth headers for the admin user.
     """
     create_resp = await client.post(
-        "/api/profiles", json={"name": "Old Name", "targets": ["a"], "preferred_titles": ["Dev"]}, headers=admin_headers
+        "/api/profiles",
+        json={"name": "Old Name", "targets": ["a"], "preferred_titles": ["Dev"]},
+        headers=admin_headers,
     )
     profile_id = create_resp.json()["id"]
 
@@ -174,7 +199,11 @@ async def test_delete_profile(client, admin_headers):
         client: The httpx test client.
         admin_headers: Auth headers for the admin user.
     """
-    create_resp = await client.post("/api/profiles", json={"name": "ToDelete", "preferred_titles": ["Dev"]}, headers=admin_headers)
+    create_resp = await client.post(
+        "/api/profiles",
+        json={"name": "ToDelete", "preferred_titles": ["Dev"]},
+        headers=admin_headers,
+    )
     profile_id = create_resp.json()["id"]
 
     del_resp = await client.delete(f"/api/profiles/{profile_id}", headers=admin_headers)

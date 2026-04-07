@@ -4,16 +4,11 @@ cover letters error paths, and auth edge cases."""
 import pytest
 
 from app.models.certification import Certification
-from app.models.course import Course
 from app.models.cover_letter import CoverLetter
-from app.models.event import Event
-from app.models.group import Group
 from app.models.job_opportunity import JobOpportunity
 from app.models.profile import UserProfile
 from app.models.run import Run
-from app.models.trend import Trend
 from app.models.user import User
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -72,9 +67,7 @@ class TestPolicyEndpoints:
 
     @pytest.mark.asyncio
     async def test_get_policy_not_found(self, client, admin_headers):
-        resp = await client.get(
-            "/api/policies/nonexistent_policy", headers=admin_headers
-        )
+        resp = await client.get("/api/policies/nonexistent_policy", headers=admin_headers)
         assert resp.status_code == 404
         assert "not found" in resp.json()["detail"].lower()
 
@@ -97,9 +90,7 @@ class TestAuditEndpoints:
         assert resp.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_verifier_report_run_not_found(
-        self, client, db_session, admin_headers
-    ):
+    async def test_verifier_report_run_not_found(self, client, db_session, admin_headers):
         profile, _ = await _setup_profile_and_run(db_session, email_suffix="audit2")
         resp = await client.get(
             f"/api/profiles/{profile.id}/runs/nonexistent-run-id/verifier-report",
@@ -185,9 +176,7 @@ class TestResultsMutations:
         assert resp.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_patch_certification_not_found(
-        self, client, db_session, admin_headers
-    ):
+    async def test_patch_certification_not_found(self, client, db_session, admin_headers):
         profile, _ = await _setup_profile_and_run(db_session, email_suffix="pc1")
         resp = await client.patch(
             f"/api/profiles/{profile.id}/results/certifications/nonexistent",
@@ -305,9 +294,7 @@ class TestResultsMutations:
         assert resp.json()["detail"] == "Deleted"
 
     @pytest.mark.asyncio
-    async def test_delete_certification_success(
-        self, client, db_session, admin_headers
-    ):
+    async def test_delete_certification_success(self, client, db_session, admin_headers):
         profile, run = await _setup_profile_and_run(db_session, email_suffix="dc1")
         cert = Certification(
             profile_id=profile.id,
@@ -326,9 +313,7 @@ class TestResultsMutations:
         assert resp.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_delete_certification_not_found(
-        self, client, db_session, admin_headers
-    ):
+    async def test_delete_certification_not_found(self, client, db_session, admin_headers):
         profile, _ = await _setup_profile_and_run(db_session, email_suffix="dc2")
         resp = await client.delete(
             f"/api/profiles/{profile.id}/results/certifications/nope",
@@ -418,9 +403,7 @@ class TestRunEndpoints:
         assert resp.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_delete_completed_run_success(
-        self, client, db_session, admin_headers
-    ):
+    async def test_delete_completed_run_success(self, client, db_session, admin_headers):
         profile, run = await _setup_profile_and_run(db_session, email_suffix="run5")
         resp = await client.delete(
             f"/api/profiles/{profile.id}/runs/{run.id}",
@@ -435,9 +418,7 @@ class TestRunEndpoints:
     ):
         """A run with status='running' but no live task can be deleted (orphan cleanup)."""
         profile, _ = await _setup_profile_and_run(db_session, email_suffix="run6")
-        orphan_run = Run(
-            profile_id=profile.id, mode="daily", status="running"
-        )
+        orphan_run = Run(profile_id=profile.id, mode="daily", status="running")
         db_session.add(orphan_run)
         await db_session.commit()
         await db_session.refresh(orphan_run)
@@ -468,13 +449,9 @@ class TestRunEndpoints:
         assert data["skipped"] == []
 
     @pytest.mark.asyncio
-    async def test_bulk_delete_skips_nonexistent(
-        self, client, db_session, admin_headers
-    ):
+    async def test_bulk_delete_skips_nonexistent(self, client, db_session, admin_headers):
         """Bulk delete should skip run IDs that do not exist."""
-        profile, completed_run = await _setup_profile_and_run(
-            db_session, email_suffix="run8"
-        )
+        profile, completed_run = await _setup_profile_and_run(db_session, email_suffix="run8")
         fake_id = "00000000-0000-0000-0000-000000000000"
 
         resp = await client.post(
@@ -504,9 +481,7 @@ class TestCoverLetterEndpoints:
     """Tests for cover letter error paths."""
 
     @pytest.mark.asyncio
-    async def test_get_cover_letter_not_found(
-        self, client, db_session, admin_headers
-    ):
+    async def test_get_cover_letter_not_found(self, client, db_session, admin_headers):
         profile, _ = await _setup_profile_and_run(db_session, email_suffix="cl1")
         resp = await client.get(
             f"/api/profiles/{profile.id}/cover-letters/nonexistent",
@@ -515,9 +490,7 @@ class TestCoverLetterEndpoints:
         assert resp.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_delete_cover_letter_not_found(
-        self, client, db_session, admin_headers
-    ):
+    async def test_delete_cover_letter_not_found(self, client, db_session, admin_headers):
         profile, _ = await _setup_profile_and_run(db_session, email_suffix="cl2")
         resp = await client.delete(
             f"/api/profiles/{profile.id}/cover-letters/nonexistent",
@@ -536,9 +509,7 @@ class TestCoverLetterEndpoints:
         assert resp.json() == []
 
     @pytest.mark.asyncio
-    async def test_create_cover_letter_no_job_or_text(
-        self, client, db_session, admin_headers
-    ):
+    async def test_create_cover_letter_no_job_or_text(self, client, db_session, admin_headers):
         """Creating a cover letter without job_opportunity_id or jd_text should fail."""
         profile, _ = await _setup_profile_and_run(db_session, email_suffix="cl4")
         resp = await client.post(

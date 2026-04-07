@@ -10,7 +10,6 @@ import pytest
 # -----------------------------------------------------------------------
 # api/results.py -- call route handlers directly to bypass ASGI coverage gap
 # -----------------------------------------------------------------------
-
 from app.api.results import (
     delete_certification,
     delete_course,
@@ -40,10 +39,24 @@ def _mock_item(cls_name="Certification", **kw):
     item.title = kw.get("title", "Original")
     item.created_at = "2026-01-01T00:00:00"
     # Extra fields depending on type
-    for attr in ("provider", "platform", "organizer", "category", "company",
-                 "url", "description", "cost", "duration", "location",
-                 "salary_range", "source_query", "event_date", "member_count",
-                 "relevance", "source"):
+    for attr in (
+        "provider",
+        "platform",
+        "organizer",
+        "category",
+        "company",
+        "url",
+        "description",
+        "cost",
+        "duration",
+        "location",
+        "salary_range",
+        "source_query",
+        "event_date",
+        "member_count",
+        "relevance",
+        "source",
+    ):
         setattr(item, attr, kw.get(attr))
     return item
 
@@ -67,6 +80,7 @@ class TestResultsPatchDirect:
         with patch("app.api.results.result_service") as svc:
             svc.update_result_title = AsyncMock(return_value=None)
             from fastapi import HTTPException
+
             with pytest.raises(HTTPException) as exc_info:
                 await update_certification(_mock_profile(), "p1", "x", MagicMock(), AsyncMock())
             assert exc_info.value.status_code == 404
@@ -77,7 +91,9 @@ class TestResultsPatchDirect:
         item.title = "New"
         with patch("app.api.results.result_service") as svc:
             svc.update_result_title = AsyncMock(return_value=item)
-            result = await update_course(_mock_profile(), "p1", "i", MagicMock(title="New"), AsyncMock())
+            result = await update_course(
+                _mock_profile(), "p1", "i", MagicMock(title="New"), AsyncMock()
+            )
             assert result.title == "New"
 
     @pytest.mark.asyncio
@@ -86,7 +102,9 @@ class TestResultsPatchDirect:
         item.title = "Ev"
         with patch("app.api.results.result_service") as svc:
             svc.update_result_title = AsyncMock(return_value=item)
-            result = await update_event(_mock_profile(), "p1", "i", MagicMock(title="Ev"), AsyncMock())
+            result = await update_event(
+                _mock_profile(), "p1", "i", MagicMock(title="Ev"), AsyncMock()
+            )
             assert result.title == "Ev"
 
     @pytest.mark.asyncio
@@ -95,7 +113,9 @@ class TestResultsPatchDirect:
         item.title = "Gr"
         with patch("app.api.results.result_service") as svc:
             svc.update_result_title = AsyncMock(return_value=item)
-            result = await update_group(_mock_profile(), "p1", "i", MagicMock(title="Gr"), AsyncMock())
+            result = await update_group(
+                _mock_profile(), "p1", "i", MagicMock(title="Gr"), AsyncMock()
+            )
             assert result.title == "Gr"
 
     @pytest.mark.asyncio
@@ -104,7 +124,9 @@ class TestResultsPatchDirect:
         item.title = "Tr"
         with patch("app.api.results.result_service") as svc:
             svc.update_result_title = AsyncMock(return_value=item)
-            result = await update_trend(_mock_profile(), "p1", "i", MagicMock(title="Tr"), AsyncMock())
+            result = await update_trend(
+                _mock_profile(), "p1", "i", MagicMock(title="Tr"), AsyncMock()
+            )
             assert result.title == "Tr"
 
 
@@ -177,6 +199,7 @@ class TestDeleteJobDirect:
     @pytest.mark.asyncio
     async def test_delete_job_force_not_found(self):
         from fastapi import HTTPException
+
         with patch("app.api.results.result_service") as svc:
             svc.delete_job_cascade = AsyncMock(return_value=False)
             with pytest.raises(HTTPException) as exc_info:
@@ -186,6 +209,7 @@ class TestDeleteJobDirect:
     @pytest.mark.asyncio
     async def test_delete_job_no_force_not_found(self):
         from fastapi import HTTPException
+
         with patch("app.api.results.result_service") as svc:
             svc.count_cover_letters_for_job = AsyncMock(return_value=0)
             svc.delete_result = AsyncMock(return_value=False)
@@ -196,6 +220,7 @@ class TestDeleteJobDirect:
     @pytest.mark.asyncio
     async def test_delete_job_no_force_has_cls(self):
         from fastapi import HTTPException
+
         with patch("app.api.results.result_service") as svc:
             svc.count_cover_letters_for_job = AsyncMock(return_value=3)
             with pytest.raises(HTTPException) as exc_info:
@@ -208,14 +233,14 @@ class TestDeleteJobDirect:
 # -----------------------------------------------------------------------
 
 from app.api.auth import (
+    forgot_password,
+    google_callback,
     login,
     logout,
     refresh,
     register,
-    verify_email,
-    forgot_password,
     reset_password,
-    google_callback,
+    verify_email,
 )
 
 
@@ -224,8 +249,15 @@ class TestAuthRoutesDirect:
 
     @pytest.mark.asyncio
     async def test_register_success(self):
-        user = MagicMock(id="u1", first_name="A", last_name="B", email="a@b.com",
-                         role="admin", email_verified=False, created_at="2026-01-01")
+        user = MagicMock(
+            id="u1",
+            first_name="A",
+            last_name="B",
+            email="a@b.com",
+            role="admin",
+            email_verified=False,
+            created_at="2026-01-01",
+        )
         with patch("app.api.auth.auth_service") as svc:
             svc.register_user = AsyncMock(return_value=(user, "acc", "ref"))
             body = MagicMock()
@@ -235,6 +267,7 @@ class TestAuthRoutesDirect:
     @pytest.mark.asyncio
     async def test_register_conflict(self):
         from fastapi import HTTPException
+
         with patch("app.api.auth.auth_service") as svc:
             svc.register_user = AsyncMock(side_effect=ValueError("already registered"))
             with pytest.raises(HTTPException) as exc_info:
@@ -244,6 +277,7 @@ class TestAuthRoutesDirect:
     @pytest.mark.asyncio
     async def test_register_validation_error(self):
         from fastapi import HTTPException
+
         with patch("app.api.auth.auth_service") as svc:
             svc.register_user = AsyncMock(side_effect=ValueError("bad input"))
             with pytest.raises(HTTPException) as exc_info:
@@ -252,8 +286,15 @@ class TestAuthRoutesDirect:
 
     @pytest.mark.asyncio
     async def test_login_success(self):
-        user = MagicMock(id="u1", first_name="A", last_name="B", email="a@b.com",
-                         role="user", email_verified=True, created_at="2026-01-01")
+        user = MagicMock(
+            id="u1",
+            first_name="A",
+            last_name="B",
+            email="a@b.com",
+            role="user",
+            email_verified=True,
+            created_at="2026-01-01",
+        )
         with patch("app.api.auth.auth_service") as svc:
             svc.login_user = AsyncMock(return_value=(user, "acc", "ref"))
             body = MagicMock()
@@ -263,6 +304,7 @@ class TestAuthRoutesDirect:
     @pytest.mark.asyncio
     async def test_login_fail(self):
         from fastapi import HTTPException
+
         with patch("app.api.auth.auth_service") as svc:
             svc.login_user = AsyncMock(side_effect=ValueError("bad"))
             with pytest.raises(HTTPException) as exc_info:
@@ -280,6 +322,7 @@ class TestAuthRoutesDirect:
     @pytest.mark.asyncio
     async def test_refresh_fail(self):
         from fastapi import HTTPException
+
         with patch("app.api.auth.auth_service") as svc:
             svc.refresh_tokens = AsyncMock(side_effect=ValueError("expired"))
             with pytest.raises(HTTPException) as exc_info:
@@ -305,6 +348,7 @@ class TestAuthRoutesDirect:
     @pytest.mark.asyncio
     async def test_verify_email_fail(self):
         from fastapi import HTTPException
+
         with patch("app.api.auth.auth_service") as svc:
             svc.verify_email = AsyncMock(side_effect=ValueError("bad"))
             with pytest.raises(HTTPException) as exc_info:
@@ -330,6 +374,7 @@ class TestAuthRoutesDirect:
     @pytest.mark.asyncio
     async def test_reset_password_fail(self):
         from fastapi import HTTPException
+
         with patch("app.api.auth.auth_service") as svc:
             svc.reset_password = AsyncMock(side_effect=ValueError("bad"))
             with pytest.raises(HTTPException) as exc_info:
@@ -340,8 +385,15 @@ class TestAuthRoutesDirect:
     async def test_google_callback_success(self):
         request = MagicMock()
         request.url_for.return_value = "http://test/callback"
-        user = MagicMock(id="u1", first_name="G", last_name="U", email="g@g.com",
-                         role="user", email_verified=True, created_at="2026-01-01")
+        user = MagicMock(
+            id="u1",
+            first_name="G",
+            last_name="U",
+            email="g@g.com",
+            role="user",
+            email_verified=True,
+            created_at="2026-01-01",
+        )
         with (
             patch("app.api.auth.exchange_google_code", new_callable=AsyncMock) as mock_exchange,
             patch("app.api.auth.auth_service") as svc,
@@ -355,6 +407,7 @@ class TestAuthRoutesDirect:
     @pytest.mark.asyncio
     async def test_google_callback_fail(self):
         from fastapi import HTTPException
+
         request = MagicMock()
         request.url_for.return_value = "http://test/callback"
         with patch("app.api.auth.exchange_google_code", new_callable=AsyncMock) as mock_exchange:
@@ -369,12 +422,12 @@ class TestAuthRoutesDirect:
 # -----------------------------------------------------------------------
 
 from app.api.audit import (
-    get_audit_trail,
-    get_verifier_report,
-    get_token_usage,
-    get_executive_insights,
-    replay_run,
     diff_runs,
+    get_audit_trail,
+    get_executive_insights,
+    get_token_usage,
+    get_verifier_report,
+    replay_run,
 )
 
 
@@ -412,10 +465,16 @@ class TestAuditRoutesDirect:
     @pytest.mark.asyncio
     async def test_replay_success(self):
         with patch("app.api.audit.audit_service") as svc:
-            svc.replay_run = AsyncMock(return_value={
-                "run_id": "r2", "replay_mode": "strict", "original_run_id": "r1",
-                "result": {}, "verifier_report": {}, "drift": [],
-            })
+            svc.replay_run = AsyncMock(
+                return_value={
+                    "run_id": "r2",
+                    "replay_mode": "strict",
+                    "original_run_id": "r1",
+                    "result": {},
+                    "verifier_report": {},
+                    "drift": [],
+                }
+            )
             body = MagicMock(mode="strict")
             result = await replay_run(_mock_profile(), "p1", "r1", body, AsyncMock())
             assert result["run_id"] == "r2"
@@ -423,6 +482,7 @@ class TestAuditRoutesDirect:
     @pytest.mark.asyncio
     async def test_replay_value_error(self):
         from fastapi import HTTPException
+
         with patch("app.api.audit.audit_service") as svc:
             svc.replay_run = AsyncMock(side_effect=ValueError("no bundle"))
             with pytest.raises(HTTPException) as exc_info:
@@ -432,10 +492,16 @@ class TestAuditRoutesDirect:
     @pytest.mark.asyncio
     async def test_diff_success(self):
         with patch("app.api.audit.audit_service") as svc:
-            svc.diff_runs = AsyncMock(return_value={
-                "run_a": "r1", "run_b": "r2",
-                "additions": [], "removals": [], "changes": [], "summary": {},
-            })
+            svc.diff_runs = AsyncMock(
+                return_value={
+                    "run_a": "r1",
+                    "run_b": "r2",
+                    "additions": [],
+                    "removals": [],
+                    "changes": [],
+                    "summary": {},
+                }
+            )
             result = await diff_runs(_mock_profile(), "p1", "r1", "r2", AsyncMock())
             assert result["run_a"] == "r1"
 
@@ -446,13 +512,13 @@ class TestAuditRoutesDirect:
 
 from app.api.profiles import (
     create_profile,
-    get_profile,
-    update_profile,
     delete_profile,
     export_profile,
-    import_profile,
-    upload_cv,
     extract_skills_from_cv,
+    get_profile,
+    import_profile,
+    update_profile,
+    upload_cv,
 )
 
 
@@ -462,6 +528,7 @@ class TestProfileRoutesDirect:
     @pytest.mark.asyncio
     async def test_create_conflict(self):
         from fastapi import HTTPException
+
         with patch("app.api.profiles.profile_service") as svc:
             svc.create_profile = AsyncMock(side_effect=ValueError("dup"))
             with pytest.raises(HTTPException) as exc_info:
@@ -471,6 +538,7 @@ class TestProfileRoutesDirect:
     @pytest.mark.asyncio
     async def test_get_not_found(self):
         from fastapi import HTTPException
+
         with patch("app.api.profiles.profile_service") as svc:
             svc.get_profile = AsyncMock(return_value=None)
             with pytest.raises(HTTPException) as exc_info:
@@ -480,6 +548,7 @@ class TestProfileRoutesDirect:
     @pytest.mark.asyncio
     async def test_update_conflict(self):
         from fastapi import HTTPException
+
         with patch("app.api.profiles.profile_service") as svc:
             svc.update_profile = AsyncMock(side_effect=ValueError("dup"))
             with pytest.raises(HTTPException) as exc_info:
@@ -489,6 +558,7 @@ class TestProfileRoutesDirect:
     @pytest.mark.asyncio
     async def test_update_not_found(self):
         from fastapi import HTTPException
+
         with patch("app.api.profiles.profile_service") as svc:
             svc.update_profile = AsyncMock(return_value=None)
             with pytest.raises(HTTPException) as exc_info:
@@ -498,6 +568,7 @@ class TestProfileRoutesDirect:
     @pytest.mark.asyncio
     async def test_delete_not_found(self):
         from fastapi import HTTPException
+
         with patch("app.api.profiles.profile_service") as svc:
             svc.delete_profile = AsyncMock(return_value=False)
             with pytest.raises(HTTPException) as exc_info:
@@ -507,6 +578,7 @@ class TestProfileRoutesDirect:
     @pytest.mark.asyncio
     async def test_export_not_found(self):
         from fastapi import HTTPException
+
         with patch("app.api.profiles.profile_service") as svc:
             svc.export_profile = AsyncMock(return_value=None)
             with pytest.raises(HTTPException) as exc_info:
@@ -516,6 +588,7 @@ class TestProfileRoutesDirect:
     @pytest.mark.asyncio
     async def test_import_conflict(self):
         from fastapi import HTTPException
+
         with patch("app.api.profiles.profile_service") as svc:
             svc.import_profile = AsyncMock(side_effect=ValueError("dup"))
             with pytest.raises(HTTPException) as exc_info:
@@ -525,6 +598,7 @@ class TestProfileRoutesDirect:
     @pytest.mark.asyncio
     async def test_upload_cv_not_found(self):
         from fastapi import HTTPException
+
         with patch("app.api.profiles.profile_service") as svc:
             svc.upload_cv = AsyncMock(return_value=None)
             file = MagicMock()
@@ -538,6 +612,7 @@ class TestProfileRoutesDirect:
     @pytest.mark.asyncio
     async def test_extract_skills_lookup_error(self):
         from fastapi import HTTPException
+
         with patch("app.api.profiles.profile_service") as svc:
             svc.extract_skills_from_cv = AsyncMock(side_effect=LookupError("nope"))
             with pytest.raises(HTTPException) as exc_info:
@@ -547,6 +622,7 @@ class TestProfileRoutesDirect:
     @pytest.mark.asyncio
     async def test_extract_skills_value_error(self):
         from fastapi import HTTPException
+
         with patch("app.api.profiles.profile_service") as svc:
             svc.extract_skills_from_cv = AsyncMock(side_effect=ValueError("no cv"))
             with pytest.raises(HTTPException) as exc_info:
@@ -559,10 +635,18 @@ class TestProfileRoutesDirect:
 # -----------------------------------------------------------------------
 
 from app.api.runs import (
-    create_run as create_run_route,
-    get_run as get_run_route,
     cancel_run as cancel_run_route,
+)
+from app.api.runs import (
+    create_run as create_run_route,
+)
+from app.api.runs import (
     delete_run as delete_run_route,
+)
+from app.api.runs import (
+    get_run as get_run_route,
+)
+from app.api.runs import (
     stream_run,
 )
 
@@ -576,24 +660,28 @@ class TestRunRoutesDirect:
         with patch("app.api.runs.run_service") as svc:
             svc.create_run = AsyncMock(return_value=run_read)
             result = await create_run_route(
-                _mock_profile(), MagicMock(id="u1", role="admin"), "p1", MagicMock(mode="daily"), AsyncMock()
+                _mock_profile(),
+                MagicMock(id="u1", role="admin"),
+                "p1",
+                MagicMock(mode="daily"),
+                AsyncMock(),
             )
             assert result.id == "r1"
 
     @pytest.mark.asyncio
     async def test_create_run_api_key_error(self):
         from fastapi import HTTPException
+
         with patch("app.api.runs.run_service") as svc:
             svc.create_run = AsyncMock(side_effect=ValueError("API key required"))
             with pytest.raises(HTTPException) as exc_info:
-                await create_run_route(
-                    _mock_profile(), MagicMock(), "p1", MagicMock(), AsyncMock()
-                )
+                await create_run_route(_mock_profile(), MagicMock(), "p1", MagicMock(), AsyncMock())
             assert exc_info.value.status_code == 402
 
     @pytest.mark.asyncio
     async def test_get_run_not_found(self):
         from fastapi import HTTPException
+
         with patch("app.api.runs.run_service") as svc:
             svc.get_run = AsyncMock(return_value=None)
             with pytest.raises(HTTPException) as exc_info:
@@ -610,6 +698,7 @@ class TestRunRoutesDirect:
     @pytest.mark.asyncio
     async def test_cancel_run_not_executing(self):
         from fastapi import HTTPException
+
         with patch("app.api.runs.run_service") as svc:
             svc.cancel_run = AsyncMock(side_effect=ValueError("not running"))
             with pytest.raises(HTTPException) as exc_info:
@@ -626,6 +715,7 @@ class TestRunRoutesDirect:
     @pytest.mark.asyncio
     async def test_delete_run_not_found(self):
         from fastapi import HTTPException
+
         with patch("app.api.runs.run_service") as svc:
             svc.delete_run = AsyncMock(side_effect=LookupError("nope"))
             with pytest.raises(HTTPException) as exc_info:
@@ -635,6 +725,7 @@ class TestRunRoutesDirect:
     @pytest.mark.asyncio
     async def test_delete_run_still_executing(self):
         from fastapi import HTTPException
+
         with patch("app.api.runs.run_service") as svc:
             svc.delete_run = AsyncMock(side_effect=ValueError("still running"))
             with pytest.raises(HTTPException) as exc_info:
@@ -644,8 +735,10 @@ class TestRunRoutesDirect:
     @pytest.mark.asyncio
     async def test_stream_run(self):
         with patch("app.api.runs.event_manager") as em:
+
             async def fake_stream(rid):
                 yield {"event": "test"}
+
             em.event_stream = fake_stream
             result = await stream_run("p1", "r1", MagicMock())
             # Returns an EventSourceResponse
@@ -658,8 +751,12 @@ class TestRunRoutesDirect:
 
 from app.api.cover_letters import (
     create_cover_letter as create_cl_route,
-    get_cover_letter as get_cl_route,
+)
+from app.api.cover_letters import (
     delete_cover_letter as delete_cl_route,
+)
+from app.api.cover_letters import (
+    get_cover_letter as get_cl_route,
 )
 
 
@@ -671,12 +768,15 @@ class TestCoverLetterRoutesDirect:
         cl_read = MagicMock(id="cl1")
         with patch("app.api.cover_letters.cover_letter_service") as svc:
             svc.create_cover_letter = AsyncMock(return_value=cl_read)
-            result = await create_cl_route(_mock_profile(), MagicMock(), "p1", MagicMock(), AsyncMock())
+            result = await create_cl_route(
+                _mock_profile(), MagicMock(), "p1", MagicMock(), AsyncMock()
+            )
             assert result.id == "cl1"
 
     @pytest.mark.asyncio
     async def test_create_lookup_error(self):
         from fastapi import HTTPException
+
         with patch("app.api.cover_letters.cover_letter_service") as svc:
             svc.create_cover_letter = AsyncMock(side_effect=LookupError("not found"))
             with pytest.raises(HTTPException) as exc_info:
@@ -686,6 +786,7 @@ class TestCoverLetterRoutesDirect:
     @pytest.mark.asyncio
     async def test_get_not_found(self):
         from fastapi import HTTPException
+
         with patch("app.api.cover_letters.cover_letter_service") as svc:
             svc.get_cover_letter = AsyncMock(return_value=None)
             with pytest.raises(HTTPException) as exc_info:
@@ -695,6 +796,7 @@ class TestCoverLetterRoutesDirect:
     @pytest.mark.asyncio
     async def test_delete_not_found(self):
         from fastapi import HTTPException
+
         with patch("app.api.cover_letters.cover_letter_service") as svc:
             svc.delete_cover_letter = AsyncMock(return_value=False)
             with pytest.raises(HTTPException) as exc_info:
@@ -751,24 +853,28 @@ class TestRunServiceParseStringBranches:
 
     def test_parse_skills_single_string(self):
         from app.services.run_service import _parse_profile_skills
+
         profile = MagicMock()
         profile.skills = '"python"'  # JSON string, not list
         assert _parse_profile_skills(profile) == ["python"]
 
     def test_parse_constraints_single_string(self):
         from app.services.run_service import _parse_profile_constraints
+
         profile = MagicMock()
         profile.constraints = '"remote"'
         assert _parse_profile_constraints(profile) == ["remote"]
 
     def test_parse_skills_csv_fallback(self):
         from app.services.run_service import _parse_profile_skills
+
         profile = MagicMock()
         profile.skills = "python, java, go"
         assert _parse_profile_skills(profile) == ["python", "java", "go"]
 
     def test_parse_constraints_csv_fallback(self):
         from app.services.run_service import _parse_profile_constraints
+
         profile = MagicMock()
         profile.constraints = "remote, hybrid"
         assert _parse_profile_constraints(profile) == ["remote", "hybrid"]
@@ -780,6 +886,7 @@ class TestRunServiceFreeTrial:
     @pytest.mark.asyncio
     async def test_create_run_increments_free_trial(self):
         from app.services.run_service import create_run
+
         db = AsyncMock()
         profile = MagicMock()
         profile.targets = '["backend"]'
@@ -824,7 +931,8 @@ class TestRunServiceCleanup:
 
     @pytest.mark.asyncio
     async def test_delete_run_cascade(self):
-        from app.services.run_service import delete_run, _running_tasks
+        from app.services.run_service import _running_tasks, delete_run
+
         db = AsyncMock()
         run = MagicMock()
         run.profile_id = "p1"
@@ -853,6 +961,7 @@ class TestVerifierRemainingPaths:
     def test_web_scrapers_empty_output_general_pass(self):
         """Output with no recognized keys -> no checks -> general pass."""
         from app.engine.verifier import Verifier
+
         v = Verifier()
         result = v.verify("web_scrapers", {"unknown_key": "value"})
         # Should have at least the bounds check, so no general pass here
@@ -861,22 +970,30 @@ class TestVerifierRemainingPaths:
 
     def test_ceo_recommendation_not_dict(self):
         """CEO recommendation that is not a dict."""
-        from app.engine.verifier import Verifier, VerificationStatus
+        from app.engine.verifier import VerificationStatus, Verifier
+
         v = Verifier()
-        result = v.verify("ceo", {
-            "strategic_recommendations": ["not a dict", 42],
-            "ceo_summary": "Summary text",
-        })
+        result = v.verify(
+            "ceo",
+            {
+                "strategic_recommendations": ["not a dict", 42],
+                "ceo_summary": "Summary text",
+            },
+        )
         failed = [c for c in result.checks if c.status == VerificationStatus.FAIL]
         assert any("must be a dict" in c.message for c in failed)
 
     def test_cover_letter_all_valid(self):
         """Valid cover letter output passes all checks."""
-        from app.engine.verifier import Verifier, VerificationStatus
+        from app.engine.verifier import VerificationStatus, Verifier
+
         v = Verifier()
-        result = v.verify("cover_letter", {
-            "cover_letter_content": "Dear Hiring Manager, I am writing to apply...",
-        })
+        result = v.verify(
+            "cover_letter",
+            {
+                "cover_letter_content": "Dear Hiring Manager, I am writing to apply...",
+            },
+        )
         assert result.status == VerificationStatus.PASS
 
 
@@ -891,6 +1008,7 @@ class TestValidateOpenaiKey:
     @pytest.mark.asyncio
     async def test_valid_key(self):
         from app.services.api_key_service import validate_openai_key
+
         with patch("app.services.api_key_service.httpx") as mock_httpx:
             mock_client = AsyncMock()
             mock_resp = MagicMock()
@@ -904,6 +1022,7 @@ class TestValidateOpenaiKey:
     @pytest.mark.asyncio
     async def test_invalid_key(self):
         from app.services.api_key_service import validate_openai_key
+
         with patch("app.services.api_key_service.httpx") as mock_httpx:
             mock_client = AsyncMock()
             mock_resp = MagicMock()
@@ -917,7 +1036,9 @@ class TestValidateOpenaiKey:
     @pytest.mark.asyncio
     async def test_network_error(self):
         import httpx
+
         from app.services.api_key_service import validate_openai_key
+
         with patch("app.services.api_key_service.httpx") as mock_httpx:
             mock_httpx.HTTPError = httpx.HTTPError
             mock_client = AsyncMock()
@@ -939,6 +1060,7 @@ class TestMainModulePaths:
     def test_langsmith_disabled_removes_env_var(self):
         """When langsmith_tracing is False, LANGCHAIN_TRACING_V2 should be removed."""
         import os
+
         os.environ["LANGCHAIN_TRACING_V2"] = "true"
         with patch("app.main._settings") as mock_settings:
             mock_settings.langsmith_tracing = False
@@ -950,6 +1072,7 @@ class TestMainModulePaths:
     def test_cors_origins_with_extra(self):
         """CORS origins list includes extra comma-separated values."""
         from app.config import settings
+
         origins = ["http://localhost:5173", settings.app_base_url]
         extra = "http://extra1.com, http://extra2.com"
         origins.extend(o.strip() for o in extra.split(",") if o.strip())

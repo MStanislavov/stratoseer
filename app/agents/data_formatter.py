@@ -6,15 +6,16 @@ import json
 import logging
 from typing import Any
 
-from app.agents.base import LLMAgent
 from pydantic import BaseModel
 
+from app.agents.base import LLMAgent
 from app.agents.schemas import DataFormatterOutput
 
 logger = logging.getLogger(__name__)
 
 
 # -- Dedup helpers ----------------------------------------------------------
+
 
 def _dedup_key(item: BaseModel) -> str:
     """Build a dedup key from title + distinguishing field."""
@@ -62,7 +63,10 @@ def _raw_to_formatted(raw: dict[str, Any], subtitle_field: str) -> dict[str, Any
 
 
 def _recover_missing(
-    formatted: list[dict], raw_items: list[dict], subtitle_field: str, category: str,
+    formatted: list[dict],
+    raw_items: list[dict],
+    subtitle_field: str,
+    category: str,
 ) -> list[dict]:
     """Append any raw items the LLM dropped, using deterministic field mapping."""
     if len(formatted) >= len(raw_items):
@@ -82,7 +86,8 @@ def _recover_missing(
         recovered.append(_raw_to_formatted(raw, subtitle_field))
         logger.warning(
             "data_formatter: recovered dropped %s item: %s",
-            category, raw.get("title", "?"),
+            category,
+            raw.get("title", "?"),
         )
 
     return recovered
@@ -111,7 +116,9 @@ class DataFormatterAgent(LLMAgent):
             f"Raw group results:\n{json.dumps(raw_groups, indent=2)}\n\n"
             f"Raw trend results:\n{json.dumps(raw_trends, indent=2)}"
         )
-        result, usage = await self._invoke_structured(DataFormatterOutput, system_prompt, user_content)
+        result, usage = await self._invoke_structured(
+            DataFormatterOutput, system_prompt, user_content
+        )
 
         raw_by_category = {
             "jobs": raw_jobs,

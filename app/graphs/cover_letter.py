@@ -35,40 +35,53 @@ def _make_audit_node(
         run_id = state.get("run_id", "unknown")
         now = datetime.now(timezone.utc).isoformat
 
-        await _publish_sse(event_manager, run_id, {
-            "type": "agent_started",
-            "agent": "audit_writer",
-            "timestamp": now(),
-        })
+        await _publish_sse(
+            event_manager,
+            run_id,
+            {
+                "type": "agent_started",
+                "agent": "audit_writer",
+                "timestamp": now(),
+            },
+        )
 
         if audit_writer is None:
             node_start(_P, state, "audit_writer", skipped=True)
-            await _publish_sse(event_manager, run_id, {
-                "type": "agent_completed",
-                "agent": "audit_writer",
-                "verification_status": "pass",
-                "elapsed": 0,
-                "timestamp": now(),
-            })
+            await _publish_sse(
+                event_manager,
+                run_id,
+                {
+                    "type": "agent_completed",
+                    "agent": "audit_writer",
+                    "verification_status": "pass",
+                    "elapsed": 0,
+                    "timestamp": now(),
+                },
+            )
             return {}
 
         node_start(_P, state, "audit_writer")
         import time
+
         t0 = time.monotonic()
 
         run_id = state.get("run_id", "unknown")
         policy_hash = policy_engine.version.hash if policy_engine else ""
 
-        await audit_writer.append(run_id, AuditEvent(
-            timestamp=now(),
-            event_type="agent_start",
-            agent="audit_writer",
-        ))
+        await audit_writer.append(
+            run_id,
+            AuditEvent(
+                timestamp=now(),
+                event_type="agent_start",
+                agent="audit_writer",
+            ),
+        )
 
         # Build verifier report from accumulated results
         verifier_report: dict[str, Any] = {}
         if verifier:
             from app.engine.verifier import AgentVerification, CheckResult, VerificationStatus
+
             verifications: list[AgentVerification] = []
             for vr in state.get("verifier_results", []):
                 checks = [
@@ -79,12 +92,14 @@ def _make_audit_node(
                     )
                     for c in vr.get("checks", [])
                 ]
-                verifications.append(AgentVerification(
-                    agent_name=vr["agent_name"],
-                    status=VerificationStatus(vr["status"]),
-                    checks=checks,
-                    timestamp=vr.get("timestamp", ""),
-                ))
+                verifications.append(
+                    AgentVerification(
+                        agent_name=vr["agent_name"],
+                        status=VerificationStatus(vr["status"]),
+                        checks=checks,
+                        timestamp=vr.get("timestamp", ""),
+                    )
+                )
             verifier_report = verifier.build_report(verifications)
 
         await audit_writer.append(
@@ -112,19 +127,26 @@ def _make_audit_node(
         elapsed = time.monotonic() - t0
         node_end(_P, state, "audit_writer", elapsed)
 
-        await audit_writer.append(run_id, AuditEvent(
-            timestamp=now(),
-            event_type="agent_end",
-            agent="audit_writer",
-        ))
+        await audit_writer.append(
+            run_id,
+            AuditEvent(
+                timestamp=now(),
+                event_type="agent_end",
+                agent="audit_writer",
+            ),
+        )
 
-        await _publish_sse(event_manager, run_id, {
-            "type": "agent_completed",
-            "agent": "audit_writer",
-            "verification_status": "pass",
-            "elapsed": round(elapsed, 2),
-            "timestamp": now(),
-        })
+        await _publish_sse(
+            event_manager,
+            run_id,
+            {
+                "type": "agent_completed",
+                "agent": "audit_writer",
+                "verification_status": "pass",
+                "elapsed": round(elapsed, 2),
+                "timestamp": now(),
+            },
+        )
         return {}
 
     return audit_node
@@ -151,12 +173,23 @@ def build_cover_letter_graph(
 
     graph = StateGraph(CoverLetterState)
 
-    graph.add_node("cover_letter_agent", make_node(
-        _P, "cover_letter_agent", cover_letter_agent, "llm_generate_text",
-        policy_engine, audit_writer, verifier, event_manager,
-        token_tracker=token_tracker,
-    ))
-    graph.add_node("audit_writer", _make_audit_node(audit_writer, policy_engine, verifier, event_manager))
+    graph.add_node(
+        "cover_letter_agent",
+        make_node(
+            _P,
+            "cover_letter_agent",
+            cover_letter_agent,
+            "llm_generate_text",
+            policy_engine,
+            audit_writer,
+            verifier,
+            event_manager,
+            token_tracker=token_tracker,
+        ),
+    )
+    graph.add_node(
+        "audit_writer", _make_audit_node(audit_writer, policy_engine, verifier, event_manager)
+    )
 
     graph.set_entry_point("cover_letter_agent")
     graph.add_edge("cover_letter_agent", "audit_writer")

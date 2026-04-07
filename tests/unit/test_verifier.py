@@ -5,9 +5,9 @@ import pytest
 from app.engine.verifier import (
     AgentVerification,
     CheckResult,
-    Verifier,
     VerificationError,
     VerificationStatus,
+    Verifier,
 )
 
 
@@ -380,7 +380,11 @@ class TestJobFreshnessVerification:
     def test_expired_title_flagged(self, verifier):
         output = {
             "raw_job_results": [
-                {"title": "No longer accepting applications", "snippet": "Old posting", "url": "https://a.com"},
+                {
+                    "title": "No longer accepting applications",
+                    "snippet": "Old posting",
+                    "url": "https://a.com",
+                },
             ],
         }
         result = verifier.verify("web_scrapers", output)
@@ -420,7 +424,8 @@ class TestBuildReport:
 
     def test_all_pass(self, verifier):
         v1 = AgentVerification(
-            agent_name="a", status=VerificationStatus.PASS,
+            agent_name="a",
+            status=VerificationStatus.PASS,
             checks=[CheckResult("c1", VerificationStatus.PASS, "ok")],
         )
         report = verifier.build_report([v1])
@@ -432,7 +437,8 @@ class TestBuildReport:
 
     def test_partial_overall(self, verifier):
         v1 = AgentVerification(
-            agent_name="a", status=VerificationStatus.PARTIAL,
+            agent_name="a",
+            status=VerificationStatus.PARTIAL,
             checks=[
                 CheckResult("c1", VerificationStatus.PASS, "ok"),
                 CheckResult("c2", VerificationStatus.PARTIAL, "warn"),
@@ -444,11 +450,13 @@ class TestBuildReport:
 
     def test_fail_overall(self, verifier):
         v1 = AgentVerification(
-            agent_name="a", status=VerificationStatus.PASS,
+            agent_name="a",
+            status=VerificationStatus.PASS,
             checks=[CheckResult("c1", VerificationStatus.PASS, "ok")],
         )
         v2 = AgentVerification(
-            agent_name="b", status=VerificationStatus.FAIL,
+            agent_name="b",
+            status=VerificationStatus.FAIL,
             checks=[CheckResult("c2", VerificationStatus.FAIL, "bad")],
         )
         report = verifier.build_report([v1, v2])
@@ -457,7 +465,8 @@ class TestBuildReport:
 
     def test_report_structure(self, verifier):
         v1 = AgentVerification(
-            agent_name="a", status=VerificationStatus.PASS,
+            agent_name="a",
+            status=VerificationStatus.PASS,
             checks=[CheckResult("c1", VerificationStatus.PASS, "ok")],
         )
         report = verifier.build_report([v1])
@@ -479,7 +488,8 @@ class TestVerificationError:
 
     def test_error_message(self):
         v = AgentVerification(
-            agent_name="test", status=VerificationStatus.FAIL,
+            agent_name="test",
+            status=VerificationStatus.FAIL,
             checks=[
                 CheckResult("c1", VerificationStatus.FAIL, "something broke"),
                 CheckResult("c2", VerificationStatus.PASS, "this is fine"),

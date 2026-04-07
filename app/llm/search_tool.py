@@ -23,7 +23,9 @@ _PREFERRED_ORDER = ["duckduckgo", "brave", "yahoo", "mojeek", "yandex"]
 def _format_results(results: list[dict[str, str]]) -> str:
     """Format a list of {title, url, snippet} dicts into the standard output."""
     return "\n\n".join(
-        f"Title: {r.get('title', '')}\nURL: {r.get('url', r.get('href', ''))}\nSnippet: {r.get('snippet', r.get('body', ''))}"
+        f"Title: {r.get('title', '')}\n"
+        f"URL: {r.get('url', r.get('href', ''))}\n"
+        f"Snippet: {r.get('snippet', r.get('body', ''))}"
         for r in results
     )
 
@@ -39,13 +41,12 @@ class SafeDuckDuckGoSearchTool(BaseTool):
     """
 
     name: str = "duckduckgo_search"
-    description: str = (
-        "Search the web using DuckDuckGo. "
-        "Input should be a search query string."
-    )
+    description: str = "Search the web using DuckDuckGo. Input should be a search query string."
     max_results: int = Field(default=10, description="Max results to return")
     region: str = Field(default="wt-wt", description="Search region")
-    timelimit: str = Field(default="", description="Time filter: d (day), w (week), m (month), y (year)")
+    timelimit: str = Field(
+        default="", description="Time filter: d (day), w (week), m (month), y (year)"
+    )
     _backend: str = ""
 
     @model_validator(mode="after")

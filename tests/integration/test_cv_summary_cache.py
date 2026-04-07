@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.models.profile import UserProfile
 from app.config import settings
+from app.models.profile import UserProfile
 from app.services.profile_service import ensure_cv_summary, upload_cv
 
 FAKE_CV_TEXT = "John Doe\nSenior Software Engineer\nPython, AWS, Docker"

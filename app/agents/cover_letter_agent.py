@@ -25,12 +25,28 @@ def _strip_markdown(text: str) -> str:
 
 
 # Section headers that should NOT be treated as a person's name
-_SECTION_HEADERS = frozenset({
-    "professional summary", "summary", "experience", "education",
-    "skills", "certifications", "projects", "contact", "objective",
-    "work experience", "technical skills", "profile", "about",
-    "about me", "references", "languages", "interests", "hobbies",
-})
+_SECTION_HEADERS = frozenset(
+    {
+        "professional summary",
+        "summary",
+        "experience",
+        "education",
+        "skills",
+        "certifications",
+        "projects",
+        "contact",
+        "objective",
+        "work experience",
+        "technical skills",
+        "profile",
+        "about",
+        "about me",
+        "references",
+        "languages",
+        "interests",
+        "hobbies",
+    }
+)
 
 
 def _extract_name_from_cv(cv_text: str) -> str | None:
@@ -79,21 +95,15 @@ class CoverLetterAgent(LLMAgent):
         if profile_name:
             sections.append(f"## Candidate Name\n{profile_name}")
         if profile_targets:
-            sections.append(
-                f"## Career Targets\n{', '.join(profile_targets)}"
-            )
+            sections.append(f"## Career Targets\n{', '.join(profile_targets)}")
         if profile_skills:
             sections.append(f"## Key Skills\n{', '.join(profile_skills)}")
         if profile_constraints:
-            sections.append(
-                f"## Constraints/Preferences\n{', '.join(profile_constraints)}"
-            )
+            sections.append(f"## Constraints/Preferences\n{', '.join(profile_constraints)}")
         sections.append(f"## CV Summary\n{cv_content}")
         sections.append(f"## Job Description\n{jd_text}")
         if job_opportunity:
-            sections.append(
-                f"## Opportunity Details\n{json.dumps(job_opportunity)}"
-            )
+            sections.append(f"## Opportunity Details\n{json.dumps(job_opportunity)}")
 
         user_content = "\n\n".join(sections)
         messages = [
@@ -103,10 +113,11 @@ class CoverLetterAgent(LLMAgent):
         response = await self._llm.ainvoke(messages)
         usage = dict(response.usage_metadata) if getattr(response, "usage_metadata", None) else None
         if usage is not None:
-            usage["model_name"] = getattr(self._llm, "model_name", None) or getattr(self._llm, "model", "")
+            usage["model_name"] = getattr(self._llm, "model_name", None) or getattr(
+                self._llm, "model", ""
+            )
         content = response.content.replace("\u2014", ",").replace("\u2013", ",")
         return {
             "cover_letter_content": content,
             "_token_usage": [usage] if usage else [],
         }
-

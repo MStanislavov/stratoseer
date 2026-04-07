@@ -24,8 +24,7 @@ class GoalExtractorAgent(LLMAgent):
         constraints: list[str] | None = None,
     ) -> str:
         """Build a deterministic LinkedIn job search directive from structured profile fields."""
-        parts: list[str] = ["Search LinkedIn for",
-                            work_arrangement if work_arrangement else ""]
+        parts: list[str] = ["Search LinkedIn for", work_arrangement if work_arrangement else ""]
 
         parts.append(" and ".join(preferred_titles))
         parts.append("job openings")
@@ -91,7 +90,9 @@ class GoalExtractorAgent(LLMAgent):
         if learning_format:
             user_parts.append(f"Learning format: {learning_format}")
         user_content = "\n".join(user_parts)
-        result, usage = await self._invoke_structured(GoalExtractorOutput, system_prompt, user_content)
+        result, usage = await self._invoke_structured(
+            GoalExtractorOutput, system_prompt, user_content
+        )
 
         return {
             "search_prompts": {

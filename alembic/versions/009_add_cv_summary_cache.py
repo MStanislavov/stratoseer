@@ -9,6 +9,7 @@ Create Date: 2026-04-06
 from typing import Sequence, Union
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision: str = "009_add_cv_summary_cache"
@@ -19,9 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.add_column("user_profiles", sa.Column("cv_summary", sa.Text(), nullable=True))
-    op.add_column(
-        "user_profiles", sa.Column("cv_summary_hash", sa.String(64), nullable=True)
-    )
+    op.add_column("user_profiles", sa.Column("cv_summary_hash", sa.String(64), nullable=True))
 
 
 def downgrade() -> None:
